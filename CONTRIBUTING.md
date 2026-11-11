@@ -110,10 +110,12 @@ fix(save): preserve recorded AI decision on restore
 GitHub 上的 `main` 和 `develop` 应开启：
 
 - 必须通过 Pull Request 合并。
-- 必须通过状态检查，分支必须与目标分支保持最新。
+- 必须通过 `pr-contract`、`official-player`、`fork-player` 状态检查，分支必须与目标分支保持最新。
 - 禁止强制推送和删除分支。
 - `main` 只接受 Release/Hotfix 流程，发布标签由 Release 负责人创建。
 - 有第二名协作者后启用至少一名批准者；单人阶段仍保留 PR 和 CI 记录。
+
+检查职责、版本来源和远端保护启用顺序见 [CI 与分支保护](./docs/agents/ci-guardrails.md)。
 
 ```mermaid
 gitGraph

@@ -6,6 +6,20 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $projectPath = Join-Path $repoRoot "apps\player-godot"
+$engineVersionPath = Join-Path $repoRoot "engine\version.json"
+
+if (-not (Test-Path -LiteralPath $engineVersionPath -PathType Leaf)) {
+    Write-Error "Engine version manifest was not found: $engineVersionPath"
+    exit 2
+}
+
+try {
+    $engineVersion = Get-Content -LiteralPath $engineVersionPath -Encoding UTF8 -Raw | ConvertFrom-Json
+}
+catch {
+    Write-Error "Engine version manifest is invalid: $engineVersionPath"
+    exit 2
+}
 
 if ([string]::IsNullOrWhiteSpace($GodotPath)) {
     $godotCommand = Get-Command godot, godot4 -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -15,14 +29,18 @@ if ([string]::IsNullOrWhiteSpace($GodotPath)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($GodotPath)) {
-    $managedGodot = Join-Path $env:LOCALAPPDATA "CineWeave\tools\godot\4.7.2\Godot_v4.7.2-stable_win64_console.exe"
+    $managedGodot = Join-Path $env:LOCALAPPDATA (
+        "CineWeave\tools\godot\{0}\{1}" -f `
+            $engineVersion.godot_version,
+            $engineVersion.official_windows_console_executable
+    )
     if (Test-Path -LiteralPath $managedGodot) {
         $GodotPath = $managedGodot
     }
 }
 
 if ([string]::IsNullOrWhiteSpace($GodotPath) -or -not (Test-Path -LiteralPath $GodotPath)) {
-    Write-Error "Godot 4.7.2 was not found. Pass -GodotPath or set GODOT_BIN."
+    Write-Error "Godot $($engineVersion.godot_version) was not found. Pass -GodotPath or set GODOT_BIN."
     exit 2
 }
 

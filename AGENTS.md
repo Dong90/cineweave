@@ -25,3 +25,5 @@ This is a single-context repository: use the root `GLOSSARY.md` and relevant ADR
 ### Development workflow
 
 For feature, bug, architecture, review, PR, or release work, follow `docs/agents/development-workflow.md`; it defines the fixed skill sequence and points to `CONTRIBUTING.md` for GitFlow mechanics.
+
+For CI workflows, engine version automation, PR-body checks, or `main`/`develop` protection changes, read `docs/agents/ci-guardrails.md` before editing or changing GitHub settings.

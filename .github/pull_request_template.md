@@ -1,31 +1,35 @@
-## 目标
+## Summary
 
-<!-- 这次变更解决什么问题？对应哪个路线图版本或任务？ -->
+<!-- Show the smallest useful tree, flow, or diff sketch. -->
+
+Refs #<issue>
 
 ## GitFlow
 
-- 源分支：
-- 目标分支：
-- 变更类型：Feature / Bugfix / Release / Hotfix
+- Source: `feature/CW-<issue>-<slug>`
+- Target: `develop`
+- Type: Feature / Bugfix / Release / Hotfix
 
-## 主要变化
+## Evidence
 
-- （填写主要变化）
+- **Before:** <!-- failing behavior, test, or screenshot -->
+  **After:** <!-- passing behavior, test, or screenshot -->
 
-## 验证
+## Impact Check
 
-- [ ] 自动测试、构建和静态检查通过
-- [ ] 行为变化已有测试或明确的人工验证步骤
-- [ ] 目标版本的承接关系和验收门仍然成立
+- [ ] Automated tests, builds, and static checks pass.
+- [ ] Schema, save, and release compatibility were checked; migration and rollback are documented when needed.
+- [ ] UI loading, error, cancellation, offline, and input states were checked when applicable.
+- [ ] AI/network changes cover budget, safety, privacy, persistence, and offline fallback when applicable.
+- [ ] External or generated asset sources and rights are recorded when applicable.
+- [ ] README, ROADMAP, GLOSSARY, ADRs, and CHANGELOG were updated when needed.
 
-## 影响检查
+## Merge Danger
 
-- [ ] Schema、存档和发行兼容性已检查；需要时提供迁移/回滚
-- [ ] UI 的加载、错误、取消、离线和输入方式已检查
-- [ ] AI/联网功能具有预算、安全、隐私、持久化和离线回退
-- [ ] 外部或生成资产的来源与授权已记录
-- [ ] README、ROADMAP、GLOSSARY 和 CHANGELOG 已按需更新
+**Door:** <One-way or Two-way>
 
-## 风险与回滚
+<!-- Explain what makes the change reversible or irreversible. -->
 
-<!-- 最大风险是什么？出现问题时如何关闭或回滚？ -->
+**Blast Radius:** <affected area>
+
+<!-- State the largest plausible consequence and the rollback path. -->

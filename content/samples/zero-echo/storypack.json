@@ -20,13 +20,35 @@
           "text": "零点回声，等待回应。"
         }
       ],
-      "next_node_id": "signal-end"
+      "next_node_id": "platform-choice"
     },
     {
-      "id": "signal-end",
+      "id": "platform-choice",
+      "type": "choice",
+      "options": [
+        {
+          "id": "board-last-train",
+          "text": "登上末班车",
+          "target_node_id": "loop-ending"
+        },
+        {
+          "id": "leave-platform",
+          "text": "离开站台",
+          "target_node_id": "survivor-ending"
+        }
+      ]
+    },
+    {
+      "id": "loop-ending",
       "type": "end",
-      "title": "回声归零",
-      "text": "频道恢复寂静，但故事刚刚开始。"
+      "title": "循环仍在继续",
+      "text": "你登上末班车。再次睁眼，站台时钟仍停在 23:57。"
+    },
+    {
+      "id": "survivor-ending",
+      "type": "end",
+      "title": "幸存者",
+      "text": "你转身离开站台。00:01，城市的钟声终于越过零点。"
     }
   ]
 }

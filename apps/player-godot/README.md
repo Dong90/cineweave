@@ -1,6 +1,6 @@
 # CineWeave Godot Player
 
-This project is the V0.1 Windows Player. It uses GDScript, the Compatibility renderer, a 1280×720 internal canvas and a responsive window. The approved cold, cinematic title shell now opens the bundled 《零点回声》 StoryPack, plays its Ogg Theora clip, renders Simplified Chinese subtitle cues from media time and enters the authored ending through StoryRuntime.
+This project is the V0.1 Windows Player. It uses GDScript, the Compatibility renderer, a 1280×720 internal canvas and a responsive window. The approved cold, cinematic title shell opens the bundled 《零点回声》 StoryPack, plays its Ogg Theora clip, renders Simplified Chinese subtitle cues from media time, presents one authored choice and reaches one of two deterministic endings through StoryRuntime.
 
 ## Run with official Godot 4.7.2
 
@@ -22,7 +22,7 @@ Initialize and build the engine using [`engine/README.md`](../../engine/README.m
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\run_headless.ps1 -GodotPath <godot-console-executable>
 ```
 
-The runner accepts a GUI executable path when a sibling `_console.exe` exists and switches to the console launcher automatically. Success prints `PASS: CineWeave Godot startup baseline` and returns exit code zero. The test crosses the public StoryRuntime seam, rejects invalid StoryPacks, loads the real media asset, observes a timed subtitle and converts playback completion to a PlayerAction before checking the ending. Contract failures return a non-zero code.
+The runner accepts a GUI executable path when a sibling `_console.exe` exists and switches to the console launcher automatically. Success prints `PASS: CineWeave Godot startup baseline` and returns exit code zero. The test crosses the public StoryRuntime seam, rejects invalid StoryPacks, loads the real media asset, observes a timed subtitle, converts playback completion to a PlayerAction and verifies both mouse and numeric-key choice paths. Contract failures return a non-zero code.
 
 ## StoryPack content
 

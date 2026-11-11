@@ -59,6 +59,59 @@ func run() -> Array[String]:
 			"text": "The relay goes quiet.",
 		},
 	]
+	var choice_story_pack := {
+		"format_version": "0.1",
+		"story_id": "choice-seam",
+		"title": "Choice Seam",
+		"entry_node_id": "intro",
+		"nodes": [
+			{
+				"id": "intro",
+				"type": "clip",
+				"media_path": VALID_MEDIA_PATH,
+				"subtitles": subtitles,
+				"next_node_id": "platform-choice",
+			},
+			{
+				"id": "platform-choice",
+				"type": "choice",
+				"options": [
+					{
+						"id": "board-last-train",
+						"text": "登上末班车",
+						"target_node_id": "loop-ending",
+					},
+					{
+						"id": "leave-platform",
+						"text": "离开站台",
+						"target_node_id": "survivor-ending",
+					},
+				],
+			},
+			{
+				"id": "loop-ending",
+				"type": "end",
+				"title": "循环仍在继续",
+				"text": "你再次回到 23:57。",
+			},
+			{
+				"id": "survivor-ending",
+				"type": "end",
+				"title": "幸存者",
+				"text": "00:01，这一次你做对了。",
+			},
+		],
+	}
+	var expected_choices := [
+		{
+			"type": "PresentChoices",
+			"node_id": "platform-choice",
+			"choices": [
+				{"option_id": "board-last-train", "text": "登上末班车"},
+				{"option_id": "leave-platform", "text": "离开站台"},
+			],
+		},
+	]
 
 	var runtime: RefCounted = runtime_script.new()
 	_expect_equal(runtime.open(story_pack), [], "valid StoryPack opens without errors", failures)
@@ -85,6 +138,174 @@ func run() -> Array[String]:
 		[repeated_start, repeated_end],
 		[first_start, first_end],
 		"the same StoryPack and PlayerAction sequence emits the same StoryEffect sequence",
+		failures
+	)
+
+	var choice_runtime: RefCounted = runtime_script.new()
+	_expect_equal(
+		choice_runtime.open(choice_story_pack),
+		[],
+		"a valid choice StoryPack opens without errors",
+		failures
+	)
+	choice_runtime.start("intro")
+	_expect_equal(
+		choice_runtime.dispatch({"type": "ClipFinished"}),
+		expected_choices,
+		"ClipFinished reaches choice and emits presentation data without branch targets",
+		failures
+	)
+	_expect_equal(
+		choice_runtime.dispatch(
+			{"type": "ChoiceSelected", "option_id": "board-last-train"}
+		),
+		[
+			{
+				"type": "ShowEnding",
+				"node_id": "loop-ending",
+				"title": "循环仍在继续",
+				"text": "你再次回到 23:57。",
+			},
+		],
+		"the board-last-train PlayerAction reaches the loop ending",
+		failures
+	)
+	var survivor_runtime: RefCounted = runtime_script.new()
+	survivor_runtime.open(choice_story_pack)
+	survivor_runtime.start("intro")
+	survivor_runtime.dispatch({"type": "ClipFinished"})
+	_expect_equal(
+		survivor_runtime.dispatch(
+			{"type": "ChoiceSelected", "option_id": "leave-platform"}
+		),
+		[
+			{
+				"type": "ShowEnding",
+				"node_id": "survivor-ending",
+				"title": "幸存者",
+				"text": "00:01，这一次你做对了。",
+			},
+		],
+		"the leave-platform PlayerAction reaches the survivor ending",
+		failures
+	)
+	var guarded_choice_runtime: RefCounted = runtime_script.new()
+	guarded_choice_runtime.open(choice_story_pack)
+	guarded_choice_runtime.start("intro")
+	guarded_choice_runtime.dispatch({"type": "ClipFinished"})
+	_expect_equal(
+		guarded_choice_runtime.dispatch({"type": "ClipFinished"}),
+		[],
+		"a choice node advances only through ChoiceSelected",
+		failures
+	)
+	_expect_equal(
+		guarded_choice_runtime.dispatch(
+			{"type": "ChoiceSelected", "option_id": "not-an-authored-option"}
+		),
+		[],
+		"an unknown choice is ignored without advancing StoryRuntime",
+		failures
+	)
+	_expect_equal(
+		guarded_choice_runtime.dispatch(
+			{"type": "ChoiceSelected", "option_id": "leave-platform"}
+		),
+		[
+			{
+				"type": "ShowEnding",
+				"node_id": "survivor-ending",
+				"title": "幸存者",
+				"text": "00:01，这一次你做对了。",
+			},
+		],
+		"an ignored choice leaves the authored choice available",
+		failures
+	)
+	_expect_equal(
+		guarded_choice_runtime.dispatch(
+			{"type": "ChoiceSelected", "option_id": "board-last-train"}
+		),
+		[],
+		"a second choice is ignored after the first authored branch wins",
+		failures
+	)
+	var deterministic_runtime: RefCounted = runtime_script.new()
+	deterministic_runtime.open(choice_story_pack)
+	_expect_equal(
+		deterministic_runtime.start("intro"),
+		choice_runtime.start("intro"),
+		"the same StoryPack and start action produce identical StoryEffects",
+		failures
+	)
+	_expect_equal(
+		deterministic_runtime.dispatch({"type": "ClipFinished"}),
+		choice_runtime.dispatch({"type": "ClipFinished"}),
+		"the same StoryPack and PlayerAction produce identical choices",
+		failures
+	)
+	_expect_equal(
+		deterministic_runtime.dispatch(
+			{"type": "ChoiceSelected", "option_id": "board-last-train"}
+		),
+		choice_runtime.dispatch(
+			{"type": "ChoiceSelected", "option_id": "board-last-train"}
+		),
+		"the same complete PlayerAction sequence produces an identical ending",
+		failures
+	)
+	var wrong_option_count_pack := choice_story_pack.duplicate(true)
+	wrong_option_count_pack["nodes"][1]["options"].pop_back()
+	_expect_open_error(
+		runtime_script,
+		wrong_option_count_pack,
+		"choice options must contain exactly two options",
+		"V0.1 choice requires exactly two player options",
+		failures
+	)
+	var non_object_option_pack := choice_story_pack.duplicate(true)
+	non_object_option_pack["nodes"][1]["options"][0] = "not-an-option"
+	_expect_open_error(
+		runtime_script,
+		non_object_option_pack,
+		"every choice option must be an object",
+		"every choice option is structurally valid before startup",
+		failures
+	)
+	var missing_option_id_pack := choice_story_pack.duplicate(true)
+	missing_option_id_pack["nodes"][1]["options"][0].erase("id")
+	_expect_open_error(
+		runtime_script,
+		missing_option_id_pack,
+		"choice option id is required",
+		"every choice option has a stable identity before startup",
+		failures
+	)
+	var duplicate_option_id_pack := choice_story_pack.duplicate(true)
+	duplicate_option_id_pack["nodes"][1]["options"][1]["id"] = "board-last-train"
+	_expect_open_error(
+		runtime_script,
+		duplicate_option_id_pack,
+		"choice option ids must be unique within the StoryNode",
+		"choice option identities are unique before startup",
+		failures
+	)
+	var missing_option_text_pack := choice_story_pack.duplicate(true)
+	missing_option_text_pack["nodes"][1]["options"][0]["text"] = ""
+	_expect_open_error(
+		runtime_script,
+		missing_option_text_pack,
+		"choice option text is required",
+		"every choice option has player-facing text before startup",
+		failures
+	)
+	var missing_option_target_pack := choice_story_pack.duplicate(true)
+	missing_option_target_pack["nodes"][1]["options"][0]["target_node_id"] = "missing"
+	_expect_open_error(
+		runtime_script,
+		missing_option_target_pack,
+		"choice option target_node_id must reference an existing StoryNode",
+		"every choice option target resolves before startup",
 		failures
 	)
 
@@ -170,11 +391,11 @@ func run() -> Array[String]:
 		failures
 	)
 	var unsupported_node_pack := story_pack.duplicate(true)
-	unsupported_node_pack["nodes"][1]["type"] = "choice"
+	unsupported_node_pack["nodes"][1]["type"] = "jump"
 	_expect_open_error(
 		runtime_script,
 		unsupported_node_pack,
-		"StoryNode type must be clip or end",
+		"StoryNode type must be clip, choice, or end",
 		"V0.1 runtime rejects unsupported StoryNode types before startup",
 		failures
 	)

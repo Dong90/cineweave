@@ -4,6 +4,10 @@ var _failures: Array[String] = []
 
 
 func _initialize() -> void:
+	call_deferred("_run_tests")
+
+
+func _run_tests() -> void:
 	_expect_equal(
 		ProjectSettings.get_setting("application/config/name"),
 		"CineWeave",
@@ -37,6 +41,7 @@ func _initialize() -> void:
 	_expect_true(packed_scene != null, "main scene can be loaded")
 	if packed_scene != null:
 		var title_screen := packed_scene.instantiate()
+		root.add_child(title_screen)
 		_expect_true(title_screen is Control, "main scene is a Control-based Player screen")
 		if title_screen is Control:
 			_expect_true(title_screen.theme != null, "title screen has a project theme")
@@ -65,27 +70,48 @@ func _collect_control_text(node: Node) -> Array[String]:
 
 
 func _expect_control_theme(title_screen: Control) -> void:
-	var start_action := title_screen.get_node_or_null("StartAction") as Button
-	_expect_true(start_action != null, "title screen exposes its primary action")
-	if start_action != null:
+	var buttons := _collect_buttons(title_screen)
+	_expect_equal(buttons.size(), 1, "title screen exposes one primary action")
+	if buttons.size() == 1:
+		var start_action := buttons[0]
 		_expect_equal(
 			start_action.focus_mode,
 			Control.FOCUS_ALL,
 			"primary action supports keyboard and controller focus"
 		)
+		start_action.grab_focus()
+		_expect_true(start_action.has_focus(), "primary action can receive interface focus")
 		for state: StringName in [&"normal", &"hover", &"pressed", &"disabled", &"focus"]:
 			_expect_true(
 				start_action.has_theme_stylebox(state),
 				"primary action defines a %s theme state" % state
 			)
 
-	var system_status := title_screen.get_node_or_null("SystemStatus") as PanelContainer
-	_expect_true(system_status != null, "title screen exposes its offline status panel")
-	if system_status != null:
+	var panels := _collect_panels(title_screen)
+	_expect_true(not panels.is_empty(), "title screen exposes a themed status surface")
+	for panel in panels:
 		_expect_true(
-			system_status.has_theme_stylebox(&"panel"),
-			"offline status panel uses a themed surface"
+			panel.has_theme_stylebox(&"panel"),
+			"title screen panels use themed surfaces"
 		)
+
+
+func _collect_buttons(node: Node) -> Array[Button]:
+	var buttons: Array[Button] = []
+	if node is Button:
+		buttons.append(node)
+	for child in node.get_children():
+		buttons.append_array(_collect_buttons(child))
+	return buttons
+
+
+func _collect_panels(node: Node) -> Array[PanelContainer]:
+	var panels: Array[PanelContainer] = []
+	if node is PanelContainer:
+		panels.append(node)
+	for child in node.get_children():
+		panels.append_array(_collect_panels(child))
+	return panels
 
 
 func _expect_equal(actual: Variant, expected: Variant, behavior: String) -> void:

@@ -1,6 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Theme" path="res://themes/cineweave_theme.tres" id="1_theme"]
+[ext_resource type="Script" path="res://scripts/player_screen.gd" id="2_script"]
 
 [sub_resource type="Gradient" id="Gradient_background"]
 offsets = PackedFloat32Array(0, 0.55, 1)
@@ -33,6 +34,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_theme")
+script = ExtResource("2_script")
 
 [node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
@@ -172,3 +174,124 @@ theme_override_colors/font_color = Color(0.31, 0.43, 0.46, 1)
 theme_override_font_sizes/font_size = 12
 text = "LOCAL MODE  /  NO NETWORK  /  BUILD BASELINE"
 horizontal_alignment = 2
+
+[node name="PlayerStage" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="StageBackground" type="ColorRect" parent="PlayerStage"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.005, 0.008, 0.014, 1)
+
+[node name="VideoStage" type="VideoStreamPlayer" parent="PlayerStage"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand = true
+
+[node name="SubtitleLayer" type="PanelContainer" parent="PlayerStage"]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.14
+anchor_top = 0.77
+anchor_right = 0.86
+anchor_bottom = 0.91
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="SubtitleText" type="Label" parent="PlayerStage/SubtitleLayer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.98, 0.98, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.92)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 28
+text = "字幕"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="EndingLayer" type="PanelContainer" parent="PlayerStage"]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.24
+anchor_top = 0.22
+anchor_right = 0.76
+anchor_bottom = 0.78
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="EndingContent" type="VBoxContainer" parent="PlayerStage/EndingLayer"]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="EndingEyebrow" type="Label" parent="PlayerStage/EndingLayer/EndingContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.36, 0.72, 0.75, 1)
+theme_override_font_sizes/font_size = 14
+text = "ZERO ECHO  /  END"
+horizontal_alignment = 1
+
+[node name="EndingTitle" type="Label" parent="PlayerStage/EndingLayer/EndingContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.98, 0.98, 1)
+theme_override_font_sizes/font_size = 48
+text = "结局"
+horizontal_alignment = 1
+
+[node name="EndingText" type="Label" parent="PlayerStage/EndingLayer/EndingContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.79, 0.81, 1)
+theme_override_font_sizes/font_size = 19
+text = "故事结束。"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="ErrorLayer" type="PanelContainer" parent="PlayerStage"]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.2
+anchor_top = 0.32
+anchor_right = 0.8
+anchor_bottom = 0.68
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ErrorContent" type="VBoxContainer" parent="PlayerStage/ErrorLayer"]
+layout_mode = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="ErrorTitle" type="Label" parent="PlayerStage/ErrorLayer/ErrorContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.66, 0.28, 1)
+theme_override_font_sizes/font_size = 30
+text = "无法播放"
+horizontal_alignment = 1
+
+[node name="ErrorText" type="Label" parent="PlayerStage/ErrorLayer/ErrorContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.76, 0.82, 0.83, 1)
+theme_override_font_sizes/font_size = 16
+text = "StoryPack 校验失败。"
+horizontal_alignment = 1
+autowrap_mode = 2

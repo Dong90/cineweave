@@ -8,6 +8,8 @@ func _initialize() -> void:
 
 
 func _run_tests() -> void:
+	_run_story_runtime_spec()
+
 	_expect_equal(
 		ProjectSettings.get_setting("application/config/name"),
 		"CineWeave",
@@ -50,6 +52,7 @@ func _run_tests() -> void:
 			_expect_true(control_text.has("开始体验"), "title screen presents a primary start action")
 			_expect_control_theme(title_screen)
 		title_screen.free()
+		await _run_player_playback_spec(packed_scene)
 
 	if _failures.is_empty():
 		print("PASS: CineWeave Godot startup baseline")
@@ -58,6 +61,25 @@ func _run_tests() -> void:
 		for failure in _failures:
 			push_error(failure)
 		quit(1)
+
+
+func _run_story_runtime_spec() -> void:
+	var spec_script := load("res://tests/story_runtime_spec.gd")
+	_expect_true(spec_script != null, "StoryRuntime public seam specification can be loaded")
+	if spec_script == null:
+		return
+	var spec: RefCounted = spec_script.new()
+	_failures.append_array(spec.run())
+
+
+func _run_player_playback_spec(packed_scene: PackedScene) -> void:
+	var spec_script := load("res://tests/player_playback_spec.gd")
+	_expect_true(spec_script != null, "Player playback public seam specification can be loaded")
+	if spec_script == null:
+		return
+	var spec: RefCounted = spec_script.new()
+	var playback_failures: Array[String] = await spec.run(self, packed_scene)
+	_failures.append_array(playback_failures)
 
 
 func _collect_control_text(node: Node) -> Array[String]:

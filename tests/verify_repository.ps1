@@ -27,6 +27,14 @@ $requiredFiles = @(
     ".github\pull_request_template.md",
     "tests\verify_pr_contract.ps1",
     "tests\test_pr_contract.ps1",
+    "tests\verify_storypack_copy.ps1",
+    "tools\content\sync_storypacks.ps1",
+    "tools\media\generate_zero_echo.ps1",
+    "content\samples\zero-echo\storypack.json",
+    "content\samples\zero-echo\media\zero-echo.ogv",
+    "content\samples\zero-echo\ASSET_SOURCE.md",
+    "apps\player-godot\content\zero-echo\storypack.json",
+    "apps\player-godot\content\zero-echo\media\zero-echo.ogv",
     "docs\agents\ci-guardrails.md",
     "docs\adr\0001-pin-godot-fork-and-preserve-official-compatibility.md"
 )
@@ -227,6 +235,14 @@ if ($agentInstructions -notmatch 'docs/agents/ci-guardrails\.md') {
 $developmentWorkflow = Get-Content -LiteralPath (Join-Path $repoRoot "docs\agents\development-workflow.md") -Encoding UTF8 -Raw
 if ($developmentWorkflow -notmatch 'Future milestone gates are not current Ticket blockers') {
     $failures.Add("Development workflow must keep future milestone gates out of current Ticket reviews.")
+}
+
+$storyPackCopyCheck = Join-Path $repoRoot "tests\verify_storypack_copy.ps1"
+if (Test-Path -LiteralPath $storyPackCopyCheck -PathType Leaf) {
+    & $storyPackCopyCheck
+    if ($LASTEXITCODE -ne 0) {
+        $failures.Add("Authoritative StoryPack content and its Godot copy must match.")
+    }
 }
 
 if ($failures.Count -gt 0) {

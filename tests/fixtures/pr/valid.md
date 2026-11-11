@@ -26,4 +26,3 @@ Refs #14
 The workflow can be reverted without migrating product data.
 
 **Blast Radius:** Development workflow
-

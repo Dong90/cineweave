@@ -19,4 +19,3 @@ Refs #14
 **Door:** Two-way
 
 **Blast Radius:** Development workflow
-

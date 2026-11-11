@@ -82,4 +82,3 @@ if ($failures.Count -gt 0) {
 }
 
 Write-Output "PASS: pull request contract"
-

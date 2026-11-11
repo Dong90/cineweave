@@ -20,6 +20,11 @@ func _initialize() -> void:
 		"project uses a 720-high internal canvas"
 	)
 	_expect_equal(
+		ProjectSettings.get_setting("display/window/stretch/mode"),
+		"canvas_items",
+		"project scales its internal canvas with the window"
+	)
+	_expect_equal(
 		ProjectSettings.get_setting("rendering/renderer/rendering_method"),
 		"gl_compatibility",
 		"project uses the Compatibility renderer"
@@ -35,9 +40,10 @@ func _initialize() -> void:
 		_expect_true(title_screen is Control, "main scene is a Control-based Player screen")
 		if title_screen is Control:
 			_expect_true(title_screen.theme != null, "title screen has a project theme")
-			var visible_copy := _collect_visible_copy(title_screen)
-			_expect_true(visible_copy.has("影织"), "title screen presents the CineWeave name")
-			_expect_true(visible_copy.has("开始体验"), "title screen presents a primary start action")
+			var control_text := _collect_control_text(title_screen)
+			_expect_true(control_text.has("影织"), "title screen presents the CineWeave name")
+			_expect_true(control_text.has("开始体验"), "title screen presents a primary start action")
+			_expect_control_theme(title_screen)
 		title_screen.free()
 
 	if _failures.is_empty():
@@ -49,13 +55,37 @@ func _initialize() -> void:
 		quit(1)
 
 
-func _collect_visible_copy(node: Node) -> Array[String]:
+func _collect_control_text(node: Node) -> Array[String]:
 	var copy: Array[String] = []
 	if node is Label or node is Button:
 		copy.append(str(node.get("text")))
 	for child in node.get_children():
-		copy.append_array(_collect_visible_copy(child))
+		copy.append_array(_collect_control_text(child))
 	return copy
+
+
+func _expect_control_theme(title_screen: Control) -> void:
+	var start_action := title_screen.get_node_or_null("StartAction") as Button
+	_expect_true(start_action != null, "title screen exposes its primary action")
+	if start_action != null:
+		_expect_equal(
+			start_action.focus_mode,
+			Control.FOCUS_ALL,
+			"primary action supports keyboard and controller focus"
+		)
+		for state: StringName in [&"normal", &"hover", &"pressed", &"disabled", &"focus"]:
+			_expect_true(
+				start_action.has_theme_stylebox(state),
+				"primary action defines a %s theme state" % state
+			)
+
+	var system_status := title_screen.get_node_or_null("SystemStatus") as PanelContainer
+	_expect_true(system_status != null, "title screen exposes its offline status panel")
+	if system_status != null:
+		_expect_true(
+			system_status.has_theme_stylebox(&"panel"),
+			"offline status panel uses a themed surface"
+		)
 
 
 func _expect_equal(actual: Variant, expected: Variant, behavior: String) -> void:

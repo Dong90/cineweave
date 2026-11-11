@@ -196,6 +196,26 @@ func run() -> Array[String]:
 		"subtitle cues are valid before startup",
 		failures
 	)
+	var overlapping_subtitles_pack := story_pack.duplicate(true)
+	overlapping_subtitles_pack["nodes"][0]["subtitles"] = [
+		{
+			"start_ms": 100,
+			"end_ms": 900,
+			"text": "First cue.",
+		},
+		{
+			"start_ms": 500,
+			"end_ms": 800,
+			"text": "Overlapping cue.",
+		},
+	]
+	_expect_open_error(
+		runtime_script,
+		overlapping_subtitles_pack,
+		"subtitle cues must be ordered and non-overlapping",
+		"overlapping subtitle cues are rejected before startup",
+		failures
+	)
 	var incomplete_end_pack := story_pack.duplicate(true)
 	incomplete_end_pack["nodes"][1].erase("title")
 	_expect_open_error(

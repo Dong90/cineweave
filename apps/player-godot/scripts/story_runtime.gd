@@ -45,6 +45,7 @@ func open(story_pack: Dictionary) -> Array[Dictionary]:
 		if node.get("type") == "clip" and (not (subtitles is Array) or subtitles.is_empty()):
 			return _invalid_story_pack("clip subtitles must contain at least one cue")
 		if node.get("type") == "clip":
+			var previous_cue_end_ms := -1.0
 			for cue: Variant in subtitles:
 				var cue_is_invalid := not (cue is Dictionary)
 				if not cue_is_invalid:
@@ -59,6 +60,12 @@ func open(story_pack: Dictionary) -> Array[Dictionary]:
 					return _invalid_story_pack(
 						"subtitle cues require ordered start_ms, end_ms, and text"
 					)
+				var cue_start_ms := float(cue.get("start_ms", -1))
+				if cue_start_ms < previous_cue_end_ms:
+					return _invalid_story_pack(
+						"subtitle cues must be ordered and non-overlapping"
+					)
+				previous_cue_end_ms = float(cue.get("end_ms", -1))
 		if node.get("type") == "end" and (
 			str(node.get("title", "")).is_empty() or str(node.get("text", "")).is_empty()
 		):

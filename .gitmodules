@@ -1,0 +1,3 @@
+[submodule "engine/godot"]
+	path = engine/godot
+	url = git@github.com:Dong90/godot.git

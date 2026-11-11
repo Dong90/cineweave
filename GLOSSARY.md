@@ -8,6 +8,12 @@
 
 **避免使用：** 需求、提示词、故事梗概（它们只描述 StoryBrief 的一部分）。
 
+## StoryPack（剧情包）
+
+以结构化方式表达一部互动故事及其 StoryGraph、叙事内容与资源引用的内容家族；DraftStoryPack 和 PublishedStoryPack 是它在不同生命周期阶段的明确形态。
+
+**避免使用：** ReleaseBundle；当生命周期阶段已知时，应使用 DraftStoryPack 或 PublishedStoryPack。
+
 ## DraftStoryPack（草稿剧情包）
 
 仍可编辑和审核的结构化剧情集合，可以来自人工创作或 AI 辅助，但尚不允许作为正式发行内容运行。

@@ -44,19 +44,19 @@ func _on_start_action_pressed() -> void:
 	var story_pack := _read_story_pack(SAMPLE_STORY_PACK_PATH)
 	if story_pack.is_empty():
 		_show_player_stage()
-		_apply_effects([_show_error_effect("StoryPack 文件无法读取。")])
+		_show_error("StoryPack 文件无法读取。", [])
 		return
 
 	var open_effects: Array = _runtime.open(story_pack)
 	_show_player_stage()
 	if not open_effects.is_empty():
-		_apply_effects(open_effects)
+		render_story_effects(open_effects)
 		return
-	_apply_effects(_runtime.start(str(story_pack.get("entry_node_id", ""))))
+	render_story_effects(_runtime.start(str(story_pack.get("entry_node_id", ""))))
 
 
 func _on_video_finished() -> void:
-	_apply_effects(_runtime.dispatch({"type": "ClipFinished"}))
+	render_story_effects(_runtime.dispatch({"type": "ClipFinished"}))
 
 
 func _read_story_pack(path: String) -> Dictionary:
@@ -85,7 +85,7 @@ func _show_player_stage() -> void:
 	_player_stage.show()
 
 
-func _apply_effects(effects: Array) -> void:
+func render_story_effects(effects: Array) -> void:
 	for effect: Variant in effects:
 		if not (effect is Dictionary):
 			continue
@@ -93,7 +93,7 @@ func _apply_effects(effects: Array) -> void:
 			"PlayClip":
 				var stream := load(str(effect.get("media_path", ""))) as VideoStream
 				if stream == null:
-					_apply_effects([_show_error_effect("视频素材无法加载。")])
+					_show_error("视频素材无法加载。", [])
 					continue
 				_video_player.stream = stream
 				_video_player.play()
@@ -107,20 +107,14 @@ func _apply_effects(effects: Array) -> void:
 				_ending_text.text = str(effect.get("text", ""))
 				_ending_layer.show()
 			"ShowError":
-				_video_player.stop()
-				_subtitle_layer.hide()
 				var details: Array = effect.get("details", [])
-				_error_text.text = "%s\n%s" % [
-					str(effect.get("message", "StoryPack 校验失败。")),
-					"\n".join(details),
-				]
-				_error_layer.show()
+				_show_error(str(effect.get("message", "StoryPack 校验失败。")), details)
 
 
-func _show_error_effect(message: String) -> Dictionary:
-	return {
-		"type": "ShowError",
-		"code": "PlayerSourceError",
-		"message": message,
-		"details": [],
-	}
+func _show_error(message: String, details: Array) -> void:
+	_video_player.stop()
+	_subtitle_layer.hide()
+	_error_text.text = message
+	if not details.is_empty():
+		_error_text.text += "\n%s" % "\n".join(details)
+	_error_layer.show()

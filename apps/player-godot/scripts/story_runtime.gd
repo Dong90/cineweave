@@ -15,22 +15,32 @@ func open(story_pack: Dictionary) -> Array[Dictionary]:
 	if not (nodes is Array) or nodes.is_empty():
 		return _invalid_story_pack("nodes must contain at least one StoryNode")
 	for node: Variant in nodes:
-		if node is Dictionary:
-			var node_id := str(node.get("id", ""))
-			if node_id.is_empty():
-				return _invalid_story_pack("StoryNode id is required")
-			if node.get("type") not in ["clip", "end"]:
-				return _invalid_story_pack("StoryNode type must be clip or end")
-			if _nodes_by_id.has(node_id):
-				return _invalid_story_pack("StoryNode ids must be unique")
-			_nodes_by_id[node_id] = node.duplicate(true)
+		if not (node is Dictionary):
+			return _invalid_story_pack("every StoryNode must be an object")
+		var node_id := str(node.get("id", ""))
+		if node_id.is_empty():
+			return _invalid_story_pack("StoryNode id is required")
+		if node.get("type") not in ["clip", "end"]:
+			return _invalid_story_pack("StoryNode type must be clip or end")
+		if _nodes_by_id.has(node_id):
+			return _invalid_story_pack("StoryNode ids must be unique")
+		_nodes_by_id[node_id] = node.duplicate(true)
 	if not _nodes_by_id.has(str(story_pack.get("entry_node_id", ""))):
 		return _invalid_story_pack("entry_node_id must reference an existing StoryNode")
 	for node: Dictionary in _nodes_by_id.values():
 		if node.get("type") == "clip" and not _nodes_by_id.has(str(node.get("next_node_id", ""))):
 			return _invalid_story_pack("clip next_node_id must reference an existing StoryNode")
-		if node.get("type") == "clip" and not FileAccess.file_exists(str(node.get("media_path", ""))):
-			return _invalid_story_pack("clip media_path must reference an existing file")
+		if node.get("type") == "clip":
+			var media_path := str(node.get("media_path", ""))
+			if not FileAccess.file_exists(media_path):
+				return _invalid_story_pack("clip media_path must reference an existing file")
+			if (
+				not ResourceLoader.exists(media_path, "VideoStream")
+				or not (ResourceLoader.load(media_path, "VideoStream") is VideoStream)
+			):
+				return _invalid_story_pack(
+					"clip media_path must reference a playable VideoStream"
+				)
 		var subtitles: Variant = node.get("subtitles")
 		if node.get("type") == "clip" and (not (subtitles is Array) or subtitles.is_empty()):
 			return _invalid_story_pack("clip subtitles must contain at least one cue")

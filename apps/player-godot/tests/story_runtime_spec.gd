@@ -1,6 +1,7 @@
 extends RefCounted
 
 const RUNTIME_PATH := "res://scripts/story_runtime.gd"
+const VALID_MEDIA_PATH := "res://content/zero-echo/media/zero-echo.ogv"
 
 
 func run() -> Array[String]:
@@ -26,7 +27,7 @@ func run() -> Array[String]:
 			{
 				"id": "intro",
 				"type": "clip",
-				"media_path": "res://project.godot",
+				"media_path": VALID_MEDIA_PATH,
 				"subtitles": subtitles,
 				"next_node_id": "ending",
 			},
@@ -42,7 +43,7 @@ func run() -> Array[String]:
 		{
 			"type": "PlayClip",
 			"node_id": "intro",
-			"media_path": "res://project.godot",
+			"media_path": VALID_MEDIA_PATH,
 		},
 		{
 			"type": "ShowSubtitles",
@@ -139,6 +140,24 @@ func run() -> Array[String]:
 		missing_media_pack,
 		"clip media_path must reference an existing file",
 		"clip media references must exist before startup",
+		failures
+	)
+	var unplayable_media_pack := story_pack.duplicate(true)
+	unplayable_media_pack["nodes"][0]["media_path"] = "res://project.godot"
+	_expect_open_error(
+		runtime_script,
+		unplayable_media_pack,
+		"clip media_path must reference a playable VideoStream",
+		"clip media references must be playable before startup",
+		failures
+	)
+	var non_object_node_pack := story_pack.duplicate(true)
+	non_object_node_pack["nodes"].append("not-a-StoryNode")
+	_expect_open_error(
+		runtime_script,
+		non_object_node_pack,
+		"every StoryNode must be an object",
+		"every StoryNode is structurally valid before startup",
 		failures
 	)
 	var missing_node_id_pack := story_pack.duplicate(true)

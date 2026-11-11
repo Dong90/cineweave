@@ -13,6 +13,8 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	var subtitle_text := player.get_node_or_null("PlayerStage/SubtitleLayer/SubtitleText") as Label
 	var ending_layer := player.get_node_or_null("PlayerStage/EndingLayer") as Control
 	var ending_title := player.get_node_or_null("PlayerStage/EndingLayer/EndingContent/EndingTitle") as Label
+	var error_layer := player.get_node_or_null("PlayerStage/ErrorLayer") as Control
+	var error_text := player.get_node_or_null("PlayerStage/ErrorLayer/ErrorContent/ErrorText") as Label
 
 	_expect_true(start_action != null, "Player exposes the primary start action", failures)
 	_expect_true(player_stage != null, "Player exposes a cinematic playback stage", failures)
@@ -21,6 +23,8 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	_expect_true(subtitle_text != null, "subtitle layer owns visible text", failures)
 	_expect_true(ending_layer != null, "Player stage owns an ending layer", failures)
 	_expect_true(ending_title != null, "ending layer owns a title", failures)
+	_expect_true(error_layer != null, "Player stage owns an error layer", failures)
+	_expect_true(error_text != null, "error layer owns visible details", failures)
 
 	if (
 		start_action == null
@@ -30,6 +34,8 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 		or subtitle_text == null
 		or ending_layer == null
 		or ending_title == null
+		or error_layer == null
+		or error_text == null
 	):
 		player.free()
 		return failures
@@ -44,11 +50,28 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	_expect_true(subtitle_layer.visible, "subtitle cue becomes visible from media time", failures)
 	_expect_equal(subtitle_text.text, "信号接通。", "subtitle cue renders authored Simplified Chinese", failures)
 
-	video_player.stop()
-	video_player.finished.emit()
+	await video_player.finished
 	await scene_tree.process_frame
 	_expect_true(ending_layer.visible, "ClipFinished StoryEffect reveals the ending", failures)
 	_expect_equal(ending_title.text, "回声归零", "ending renders authored StoryPack content", failures)
+
+	player.render_story_effects(
+		[
+			{
+				"type": "ShowError",
+				"code": "InvalidStoryPack",
+				"message": "StoryPack validation failed.",
+				"details": ["test detail"],
+			},
+		]
+	)
+	await scene_tree.process_frame
+	_expect_true(error_layer.visible, "ShowError reveals the cinematic error surface", failures)
+	_expect_true(
+		"test detail" in error_text.text,
+		"ShowError renders diagnostic details for the player",
+		failures
+	)
 
 	_expect_true(player.theme != null, "playback screen inherits the CineWeave theme", failures)
 	_expect_true(

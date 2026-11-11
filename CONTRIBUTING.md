@@ -17,10 +17,13 @@
 |---|---|---|---|
 | `feature/CW-<id>-<slug>` | `develop` | `develop` | 路线图功能、重构和成体系的文档变更 |
 | `bugfix/CW-<id>-<slug>` | `develop` | `develop` | 尚未发布版本中的缺陷 |
+| `research/CW-<map>-<slug>` | `develop` | 不合并 | Wayfinder Research Ticket 的一次性证据和上下文 |
 | `release/<version>` | `develop` | `main`，随后回合 `develop` | 冻结、验证和发布一个版本 |
 | `hotfix/<version>` | `main` | `main`，随后回合 `develop` | 已发布版本的紧急生产修复 |
 
 `<slug>` 使用小写英文和连字符，例如 `feature/CW-12-story-runtime`。`<version>` 不带 `v`，例如 `release/0.1.0`；正式标签带 `v`，例如 `v0.1.0`。
+
+`research/*` 是规划证据分支，不是产品开发分支。只有用户调用 `/wayfinder` 构图后，代理才能为新建的 Research Ticket 从最新 `develop` 创建、提交并推送对应分支；Issue 使用带标题的提交链接保存上下文。该分支不开 PR、不合并到 `develop` 或 `main`，也不承载功能实现。
 
 ## 3. 功能开发流程
 

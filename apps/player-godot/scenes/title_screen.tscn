@@ -1,0 +1,174 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Theme" path="res://themes/cineweave_theme.tres" id="1_theme"]
+
+[sub_resource type="Gradient" id="Gradient_background"]
+offsets = PackedFloat32Array(0, 0.55, 1)
+colors = PackedColorArray(0.018, 0.027, 0.052, 1, 0.025, 0.075, 0.1, 1, 0.015, 0.022, 0.04, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture_background"]
+gradient = SubResource("Gradient_background")
+width = 1280
+height = 720
+fill_from = Vector2(0.08, 0.18)
+fill_to = Vector2(0.92, 0.82)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_status"]
+bg_color = Color(0.78, 0.45, 0.13, 0.1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.95, 0.65, 0.27, 0.48)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="TitleScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_theme")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("GradientTexture_background")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="GridLineTop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 112.0
+offset_bottom = 113.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.23, 0.63, 0.68, 0.16)
+
+[node name="AccentLine" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 72.0
+offset_top = 187.0
+offset_right = 76.0
+offset_bottom = 548.0
+mouse_filter = 2
+color = Color(0.9, 0.53, 0.19, 0.9)
+
+[node name="Brand" type="Label" parent="."]
+layout_mode = 0
+offset_left = 72.0
+offset_top = 50.0
+offset_right = 368.0
+offset_bottom = 81.0
+theme_override_colors/font_color = Color(0.6, 0.77, 0.79, 1)
+theme_override_font_sizes/font_size = 15
+text = "CINEWEAVE  /  PLAYER 0.1"
+
+[node name="SystemStatus" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 980.0
+offset_top = 44.0
+offset_right = 1208.0
+offset_bottom = 88.0
+theme_override_styles/panel = SubResource("StyleBox_status")
+
+[node name="StatusText" type="Label" parent="SystemStatus"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.7, 0.36, 1)
+theme_override_font_sizes/font_size = 13
+text = "  OFFLINE BASELINE  ·  READY  "
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Hero" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 104.0
+offset_top = 188.0
+offset_right = 765.0
+offset_bottom = 560.0
+theme_override_constants/separation = 12
+
+[node name="Eyebrow" type="Label" parent="Hero"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.34, 0.69, 0.72, 1)
+theme_override_font_sizes/font_size = 16
+text = "互动影像运行系统"
+
+[node name="GameTitle" type="Label" parent="Hero"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.98, 0.98, 1)
+theme_override_font_sizes/font_size = 82
+text = "影织"
+
+[node name="EnglishTitle" type="Label" parent="Hero"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.46, 0.67, 0.7, 1)
+theme_override_font_sizes/font_size = 22
+text = "CINEWEAVE"
+
+[node name="Rule" type="ColorRect" parent="Hero"]
+custom_minimum_size = Vector2(520, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.24, 0.58, 0.62, 0.34)
+
+[node name="Tagline" type="Label" parent="Hero"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.8, 0.82, 1)
+theme_override_font_sizes/font_size = 20
+text = "让选择进入影像，让影像记住选择。"
+
+[node name="Description" type="Label" parent="Hero"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.47, 0.59, 0.62, 1)
+theme_override_font_sizes/font_size = 15
+text = "Godot 4.7.2 · Compatibility · Windows Offline"
+
+[node name="StartAction" type="Button" parent="."]
+custom_minimum_size = Vector2(230, 56)
+layout_mode = 0
+offset_left = 104.0
+offset_top = 576.0
+offset_right = 334.0
+offset_bottom = 632.0
+mouse_default_cursor_shape = 2
+text = "开始体验"
+
+[node name="Hint" type="Label" parent="."]
+layout_mode = 0
+offset_left = 358.0
+offset_top = 593.0
+offset_right = 760.0
+offset_bottom = 620.0
+theme_override_colors/font_color = Color(0.4, 0.51, 0.54, 1)
+theme_override_font_sizes/font_size = 13
+text = "首个互动样片将在下一开发切片接入"
+
+[node name="Footer" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -420.0
+offset_top = -56.0
+offset_right = -72.0
+offset_bottom = -30.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.31, 0.43, 0.46, 1)
+theme_override_font_sizes/font_size = 12
+text = "LOCAL MODE  /  NO NETWORK  /  BUILD BASELINE"
+horizontal_alignment = 2

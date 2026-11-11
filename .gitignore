@@ -1,0 +1,9 @@
+# Godot import and editor state
+apps/player-godot/.godot/
+
+# Local launch and build output
+*.log
+*.tmp
+build/
+dist/
+engine/.venv/

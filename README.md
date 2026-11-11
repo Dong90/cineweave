@@ -11,6 +11,8 @@
 - [固定开发流程与技能命令](./docs/agents/development-workflow.md)：从需求访谈到实现、审查、PR、发行和复盘的执行入口。
 - [变更日志](./CHANGELOG.md)：已经发布的能力及当前未发布变更，只追加、不改写历史。
 - [领域术语表](./GLOSSARY.md)：剧情、运行时、AI 和发行概念的统一名称。
+- [Godot Player 开发说明](./apps/player-godot/README.md)：运行 V0.1 Player 和无窗口冒烟检查。
+- [Godot 引擎源码说明](./engine/README.md)：初始化、构建和升级固定的引擎 Fork。
 
 当前详细路线图保留在本文档中；路线图的修改方式由 `docs/ROADMAP.md` 管理。仓库初始化完成后，所有实现严格通过 GitFlow 分支和合并流程进入 `develop` 与 `main`。
 

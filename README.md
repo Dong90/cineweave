@@ -8,6 +8,7 @@
 
 - [路线图变更制度](./docs/ROADMAP.md)：插入、调整、冻结和发布版本时的唯一规则来源。
 - [贡献与 GitFlow 规范](./CONTRIBUTING.md)：所有代码、配置和发行工作的分支流程。
+- [固定开发流程与技能命令](./docs/agents/development-workflow.md)：从需求访谈到实现、审查、PR、发行和复盘的执行入口。
 - [变更日志](./CHANGELOG.md)：已经发布的能力及当前未发布变更，只追加、不改写历史。
 - [领域术语表](./GLOSSARY.md)：剧情、运行时、AI 和发行概念的统一名称。
 

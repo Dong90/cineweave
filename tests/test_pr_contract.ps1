@@ -84,3 +84,4 @@ foreach ($invalidBody in $invalidBodies) {
 }
 
 Write-Output "PASS: pull request contract regression tests"
+exit 0

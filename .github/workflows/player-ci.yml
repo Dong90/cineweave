@@ -1,0 +1,136 @@
+name: Player CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: player-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr-contract:
+    name: pr-contract
+    runs-on: windows-2022
+    timeout-minutes: 5
+    steps:
+      - name: Check out CineWeave
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Run PR contract regression tests
+        shell: pwsh
+        run: ./tests/test_pr_contract.ps1
+
+      - name: Verify the current PR body
+        shell: pwsh
+        run: ./tests/verify_pr_contract.ps1 -EventPath $env:GITHUB_EVENT_PATH
+
+  official-player:
+    name: official-player
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - name: Check out CineWeave
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Initialize the pinned Godot source
+        shell: pwsh
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git submodule update --init --depth 1 engine/godot
+
+      - name: Verify the repository contract
+        shell: pwsh
+        run: ./tests/verify_repository.ps1
+
+      - name: Install the verified official Godot build
+        id: official-godot
+        shell: pwsh
+        run: |
+          $manifest = Get-Content -LiteralPath ./engine/version.json -Encoding UTF8 -Raw | ConvertFrom-Json
+          $archivePath = Join-Path $env:RUNNER_TEMP "godot-official.zip"
+          $installPath = Join-Path $env:RUNNER_TEMP "godot-official"
+          Invoke-WebRequest -Uri $manifest.official_windows_archive_url -OutFile $archivePath
+
+          $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash
+          if ($actualHash -ne $manifest.official_windows_archive_sha256) {
+              throw "Official Godot archive hash mismatch: $actualHash"
+          }
+
+          Expand-Archive -LiteralPath $archivePath -DestinationPath $installPath
+          $godotPath = Join-Path $installPath $manifest.official_windows_console_executable
+          if (-not (Test-Path -LiteralPath $godotPath -PathType Leaf)) {
+              throw "Official Godot console executable was not found: $godotPath"
+          }
+          "godot_path=$godotPath" >> $env:GITHUB_OUTPUT
+
+      - name: Run the official Player smoke check
+        shell: pwsh
+        run: ./tests/run_headless.ps1 -GodotPath '${{ steps.official-godot.outputs.godot_path }}'
+
+      - name: Start the official Player main scene
+        shell: pwsh
+        run: |
+          & '${{ steps.official-godot.outputs.godot_path }}' --headless --path ./apps/player-godot --quit-after 2
+          if ($LASTEXITCODE -ne 0) {
+              throw "Official Godot failed to start the Player."
+          }
+
+      - name: Verify official-run repository hygiene
+        shell: pwsh
+        run: |
+          $dirty = git status --porcelain
+          $dirtySubmodule = git -C engine/godot status --porcelain
+          if ($dirty -or $dirtySubmodule) {
+              throw "Official Player checks left tracked workspace changes."
+          }
+
+  fork-player:
+    name: fork-player
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - name: Check out CineWeave
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Initialize the pinned Godot source
+        shell: pwsh
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git submodule update --init --depth 1 engine/godot
+
+      - name: Build the pinned Fork
+        shell: pwsh
+        run: ./engine/build.ps1 -Bootstrap -Jobs 2 -DevBuild
+
+      - name: Locate the Fork console executable
+        id: fork-godot
+        shell: pwsh
+        run: |
+          $godotPath = Resolve-Path ./engine/godot/bin/godot.windows.editor.dev.x86_64.console.exe
+          "godot_path=$godotPath" >> $env:GITHUB_OUTPUT
+
+      - name: Run the Fork Player smoke check
+        shell: pwsh
+        run: ./tests/run_headless.ps1 -GodotPath '${{ steps.fork-godot.outputs.godot_path }}'
+
+      - name: Start the Fork Player main scene
+        shell: pwsh
+        run: |
+          & '${{ steps.fork-godot.outputs.godot_path }}' --headless --path ./apps/player-godot --quit-after 2
+          if ($LASTEXITCODE -ne 0) {
+              throw "The pinned Fork failed to start the Player."
+          }
+
+      - name: Verify Fork-run repository hygiene
+        shell: pwsh
+        run: |
+          $dirty = git status --porcelain
+          $dirtySubmodule = git -C engine/godot status --porcelain
+          if ($dirty -or $dirtySubmodule) {
+              throw "Fork Player checks left tracked workspace changes."
+          }

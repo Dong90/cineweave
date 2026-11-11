@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "godot_version": "4.7.2",
+  "official_release": "4.7.2-stable",
+  "source_commit": "ed1daf0bf001b61586d9930840f2f1394092c079",
+  "fork_repository": "git@github.com:Dong90/godot.git",
+  "official_windows_archive_url": "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_win64.exe.zip",
+  "official_windows_archive_sha256": "731980F9608D61333E5BAF54A2EF17210ACC7A538446C0CB9969F002ACA1E953",
+  "official_windows_executable": "Godot_v4.7.2-stable_win64.exe",
+  "official_windows_console_executable": "Godot_v4.7.2-stable_win64_console.exe"
+}

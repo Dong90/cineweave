@@ -119,6 +119,8 @@ git switch -c feature/CW-<issue>-<slug>
 - **Standards：** 是否符合仓库规范和代码气味基线。
 - **Spec：** 是否漏做规格、做错行为或引入未要求范围。
 
+未来版本的验收门只提供路线背景，不得作为当前 Ticket 的阻断项；只有当前规格明确引用时才进入 Spec 或 Standards 结论。（Future milestone gates are not current Ticket blockers.）
+
 完成标准：固定点有效且 diff 非空；两个审查报告均完成；阻断发现已经修复并重新验证。
 
 ### 阶段 7：创建 PR
@@ -127,10 +129,12 @@ git switch -c feature/CW-<issue>-<slug>
 
 ```powershell
 git push -u origin feature/CW-<issue>-<slug>
-gh pr create --base develop --head feature/CW-<issue>-<slug>
+$body | gh pr create --base develop --head feature/CW-<issue>-<slug> --body-file -
 ```
 
-PR 必须引用 Issue，CI 全绿，并按照 `.github/pull_request_template.md` 说明迁移、离线回退、AI 安全、资产权利和回滚。功能 PR 的目标只能是 `develop`。
+`$body` 使用 PowerShell here-string 生成，禁止把多行正文直接展开为 `--body` 参数。PR 必须以 `Refs #<issue>` 引用进入 `develop` 的 Ticket，并同时保留 `/pr` 的 Summary/Evidence/Merge Danger 与 `.github/pull_request_template.md` 的 GitFlow/Impact Check。功能 PR 的目标只能是 `develop`。
+
+`pr-contract`、`official-player` 和 `fork-player` 三个稳定检查全部通过后才能合并；配置、排障和分支保护步骤见 [CI 与分支保护](./ci-guardrails.md)。
 
 完成标准：PR 可复核、证据充分、所有对话已解决；获得用户或仓库规则要求的批准后才能合并。
 

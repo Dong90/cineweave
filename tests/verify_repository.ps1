@@ -53,17 +53,31 @@ if ($null -ne $engineVersion) {
     if ($engineVersion.godot_version -notmatch '^\d+\.\d+\.\d+$') {
         $failures.Add("Engine version manifest must declare a semantic Godot version.")
     }
+    $expectedOfficialRelease = "$($engineVersion.godot_version)-stable"
+    if ($engineVersion.official_release -ne $expectedOfficialRelease) {
+        $failures.Add("Engine version manifest official_release must match godot_version.")
+    }
     if ($engineVersion.source_commit -notmatch '^[0-9a-f]{40}$') {
         $failures.Add("Engine version manifest must pin a 40-character source commit.")
     }
     if ($engineVersion.fork_repository -ne "git@github.com:Dong90/godot.git") {
         $failures.Add("Engine version manifest must identify the approved Godot Fork.")
     }
-    if ($engineVersion.official_windows_archive_url -notmatch '^https://github\.com/godotengine/godot/releases/download/') {
-        $failures.Add("Engine version manifest must use an official Godot release archive.")
+    $expectedArchiveName = "Godot_v$($expectedOfficialRelease)_win64.exe.zip"
+    $expectedArchiveUrl = "https://github.com/godotengine/godot/releases/download/$expectedOfficialRelease/$expectedArchiveName"
+    if ($engineVersion.official_windows_archive_url -ne $expectedArchiveUrl) {
+        $failures.Add("Engine version manifest must use the matching official Godot Windows release archive.")
     }
     if ($engineVersion.official_windows_archive_sha256 -notmatch '^[0-9A-Fa-f]{64}$') {
         $failures.Add("Engine version manifest must pin the official Windows archive SHA-256.")
+    }
+    $expectedWindowsExecutable = "Godot_v$($expectedOfficialRelease)_win64.exe"
+    if ($engineVersion.official_windows_executable -ne $expectedWindowsExecutable) {
+        $failures.Add("Engine version manifest must name the matching official Windows executable.")
+    }
+    $expectedWindowsConsoleExecutable = "Godot_v$($expectedOfficialRelease)_win64_console.exe"
+    if ($engineVersion.official_windows_console_executable -ne $expectedWindowsConsoleExecutable) {
+        $failures.Add("Engine version manifest must name the matching official Windows console executable.")
     }
 }
 
@@ -77,9 +91,29 @@ if (-not [string]::IsNullOrWhiteSpace($submoduleBranch)) {
     $failures.Add("Godot Submodule must pin a commit instead of following a branch.")
 }
 
-$submoduleCommit = git -C (Join-Path $repoRoot "engine\godot") rev-parse HEAD
-if ($null -ne $engineVersion -and $submoduleCommit -ne $engineVersion.source_commit) {
-    $failures.Add("Godot Submodule must match the engine version manifest commit.")
+$gitlinkEntry = @(git -C $repoRoot ls-files --stage -- engine/godot)
+if ($LASTEXITCODE -ne 0 -or $gitlinkEntry.Count -ne 1) {
+    $failures.Add("Repository index must contain exactly one engine/godot Gitlink.")
+}
+elseif ($gitlinkEntry[0] -notmatch '^160000 (?<commit>[0-9a-f]{40}) \d+\s+engine/godot$') {
+    $failures.Add("engine/godot must be stored as a Submodule Gitlink.")
+}
+elseif ($null -ne $engineVersion -and $Matches['commit'] -ne $engineVersion.source_commit) {
+    $failures.Add("The engine/godot Gitlink must match the engine version manifest commit.")
+}
+
+$submodulePath = Join-Path $repoRoot "engine\godot"
+if (-not (Test-Path -LiteralPath $submodulePath -PathType Container)) {
+    $failures.Add("Godot Submodule working tree must be initialized before repository verification.")
+}
+else {
+    $submoduleCommit = git -C $submodulePath rev-parse HEAD 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        $failures.Add("Godot Submodule working tree must contain a valid checkout.")
+    }
+    elseif ($null -ne $engineVersion -and $submoduleCommit -ne $engineVersion.source_commit) {
+        $failures.Add("Godot Submodule working tree must match the engine version manifest commit.")
+    }
 }
 
 $glossary = Get-Content -LiteralPath (Join-Path $repoRoot "GLOSSARY.md") -Encoding UTF8 -Raw
@@ -112,6 +146,7 @@ if (Test-Path -LiteralPath $playerCiPath -PathType Leaf) {
         @{ Pattern = '(?m)^name:\s*Player CI\s*$'; Message = "Player CI must expose its stable workflow name." },
         @{ Pattern = '(?m)^\s{2}pull_request:\s*$'; Message = "Player CI must run for pull requests." },
         @{ Pattern = '(?m)^\s{4}branches:\s*\[\s*develop\s*,\s*main\s*\]\s*$'; Message = "Player CI must protect develop and main." },
+        @{ Pattern = '(?m)^\s{4}types:\s*\[\s*opened\s*,\s*synchronize\s*,\s*reopened\s*,\s*edited\s*\]\s*$'; Message = "Player CI must revalidate edited pull request bodies." },
         @{ Pattern = '(?m)^permissions:\s*\r?\n\s{2}contents:\s*read\s*$'; Message = "Player CI must use read-only repository permissions." },
         @{ Pattern = '(?m)^\s{2}official-player:\s*$'; Message = "Player CI must expose the official-player check." },
         @{ Pattern = '(?m)^\s{2}fork-player:\s*$'; Message = "Player CI must expose the fork-player check." },
@@ -132,6 +167,9 @@ if (Test-Path -LiteralPath $playerCiPath -PathType Leaf) {
 
     if ($playerCi -match '(?m)^\s*pull_request_target:\s*$') {
         $failures.Add("Player CI must not execute pull request code with pull_request_target.")
+    }
+    if ($playerCi -match '(?m)^\s{2}(?:push|workflow_dispatch):') {
+        $failures.Add("Player CI check names must be produced only by pull request validation.")
     }
 
     $actionReferences = [regex]::Matches($playerCi, '(?m)^\s*(?:-\s+)?uses:\s*([^\s#]+)')

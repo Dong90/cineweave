@@ -3,9 +3,7 @@ name: Player CI
 on:
   pull_request:
     branches: [develop, main]
-  push:
-    branches: [develop, main]
-  workflow_dispatch:
+    types: [opened, synchronize, reopened, edited]
 
 permissions:
   contents: read
@@ -28,7 +26,6 @@ jobs:
         run: ./tests/test_pr_contract.ps1
 
       - name: Verify the current PR body
-        if: github.event_name == 'pull_request'
         shell: pwsh
         run: ./tests/verify_pr_contract.ps1 -EventPath $env:GITHUB_EVENT_PATH
 

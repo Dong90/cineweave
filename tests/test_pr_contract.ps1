@@ -13,19 +13,69 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $invalidBodies = @(
-    @{ File = "missing-evidence.md"; Behavior = "Evidence" },
-    @{ File = "missing-issue.md"; Behavior = "an Issue reference" },
-    @{ File = "missing-merge-danger.md"; Behavior = "Merge Danger" }
+    @{
+        Path = Join-Path $PSScriptRoot "fixtures\pr\missing-evidence.md"
+        Base = "develop"
+        Head = "feature/CW-14-player-ci-guardrails"
+        Behavior = "Evidence"
+    },
+    @{
+        Path = Join-Path $PSScriptRoot "fixtures\pr\missing-issue.md"
+        Base = "develop"
+        Head = "feature/CW-14-player-ci-guardrails"
+        Behavior = "an Issue reference"
+    },
+    @{
+        Path = Join-Path $PSScriptRoot "fixtures\pr\missing-merge-danger.md"
+        Base = "develop"
+        Head = "feature/CW-14-player-ci-guardrails"
+        Behavior = "Merge Danger"
+    },
+    @{
+        Path = Join-Path $PSScriptRoot "fixtures\pr\missing-impact-item.md"
+        Base = "develop"
+        Head = "feature/CW-14-player-ci-guardrails"
+        Behavior = "the complete Impact Check"
+    },
+    @{
+        Path = Join-Path $PSScriptRoot "fixtures\pr\placeholder-evidence.md"
+        Base = "develop"
+        Head = "feature/CW-14-player-ci-guardrails"
+        Behavior = "non-placeholder Evidence"
+    },
+    @{
+        Path = Join-Path $PSScriptRoot "fixtures\pr\placeholder-blast-radius.md"
+        Base = "develop"
+        Head = "feature/CW-14-player-ci-guardrails"
+        Behavior = "a non-placeholder blast radius"
+    },
+    @{
+        Path = Join-Path (Split-Path -Parent $PSScriptRoot) ".github\pull_request_template.md"
+        Base = "develop"
+        Head = "feature/CW-14-player-ci-guardrails"
+        Behavior = "filled template values"
+    },
+    @{
+        Path = $validBody
+        Base = "develop"
+        Head = "feature/CW-99-wrong-ticket"
+        Behavior = "a matching branch Ticket"
+    },
+    @{
+        Path = $validBody
+        Base = "main"
+        Head = "chore/CW-14-bypass"
+        Behavior = "a valid main source branch"
+    }
 )
 
 foreach ($invalidBody in $invalidBodies) {
-    $bodyPath = Join-Path $PSScriptRoot ("fixtures\pr\{0}" -f $invalidBody.File)
     $previousErrorPreference = $ErrorActionPreference
     $ErrorActionPreference = "SilentlyContinue"
     & $shellExecutable -NoProfile -ExecutionPolicy Bypass -File $contractScript `
-        -BodyPath $bodyPath `
-        -BaseBranch develop `
-        -HeadBranch feature/CW-14-player-ci-guardrails *> $null
+        -BodyPath $invalidBody.Path `
+        -BaseBranch $invalidBody.Base `
+        -HeadBranch $invalidBody.Head *> $null
     $invalidExitCode = $LASTEXITCODE
     $ErrorActionPreference = $previousErrorPreference
     if ($invalidExitCode -eq 0) {

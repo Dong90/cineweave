@@ -15,7 +15,12 @@ Adds the Player CI contract.
 
 ## Impact Check
 
-- Offline behavior remains unchanged.
+- [x] Automated tests, builds, and static checks pass.
+- [x] Schema, save, and release compatibility were checked; migration and rollback are documented when needed.
+- [x] UI loading, error, cancellation, offline, and input states were checked when applicable.
+- [x] AI/network changes cover budget, safety, privacy, persistence, and offline fallback when applicable.
+- [x] External or generated asset sources and rights are recorded when applicable.
+- [x] README, ROADMAP, GLOSSARY, ADRs, and CHANGELOG were updated when needed.
 
 ## Merge Danger
 

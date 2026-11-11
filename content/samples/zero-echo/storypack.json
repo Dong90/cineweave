@@ -1,0 +1,32 @@
+{
+  "format_version": "0.1",
+  "story_id": "zero-echo",
+  "title": "零点回声",
+  "entry_node_id": "signal-intro",
+  "nodes": [
+    {
+      "id": "signal-intro",
+      "type": "clip",
+      "media_path": "res://content/zero-echo/media/zero-echo.ogv",
+      "subtitles": [
+        {
+          "start_ms": 120,
+          "end_ms": 1050,
+          "text": "信号接通。"
+        },
+        {
+          "start_ms": 1250,
+          "end_ms": 2500,
+          "text": "零点回声，等待回应。"
+        }
+      ],
+      "next_node_id": "signal-end"
+    },
+    {
+      "id": "signal-end",
+      "type": "end",
+      "title": "回声归零",
+      "text": "频道恢复寂静，但故事刚刚开始。"
+    }
+  ]
+}

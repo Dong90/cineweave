@@ -93,9 +93,13 @@ func _collect_control_text(node: Node) -> Array[String]:
 
 func _expect_control_theme(title_screen: Control) -> void:
 	var buttons := _collect_buttons(title_screen)
-	_expect_equal(buttons.size(), 1, "title screen exposes one primary action")
-	if buttons.size() == 1:
-		var start_action := buttons[0]
+	var visible_buttons: Array[Button] = []
+	for button in buttons:
+		if button.is_visible_in_tree():
+			visible_buttons.append(button)
+	_expect_equal(visible_buttons.size(), 1, "title screen exposes one visible primary action")
+	if visible_buttons.size() == 1:
+		var start_action := visible_buttons[0]
 		_expect_equal(
 			start_action.focus_mode,
 			Control.FOCUS_ALL,
@@ -103,10 +107,11 @@ func _expect_control_theme(title_screen: Control) -> void:
 		)
 		start_action.grab_focus()
 		_expect_true(start_action.has_focus(), "primary action can receive interface focus")
+	for button in buttons:
 		for state: StringName in [&"normal", &"hover", &"pressed", &"disabled", &"focus"]:
 			_expect_true(
-				start_action.has_theme_stylebox(state),
-				"primary action defines a %s theme state" % state
+				button.has_theme_stylebox(state),
+				"Player action defines a %s theme state" % state
 			)
 
 	var panels := _collect_panels(title_screen)

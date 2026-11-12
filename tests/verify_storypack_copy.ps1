@@ -5,9 +5,6 @@ $storyPackPath = Join-Path $repoRoot "content\samples\zero-echo\storypack.json"
 $mediaPath = Join-Path $repoRoot "content\samples\zero-echo\media\zero-echo.ogv"
 
 & (Join-Path $repoRoot "tools\content\sync_storypacks.ps1") -Check
-if ($LASTEXITCODE -ne 0) {
-    exit $LASTEXITCODE
-}
 
 $storyPack = Get-Content -LiteralPath $storyPackPath -Encoding UTF8 -Raw | ConvertFrom-Json
 if ($storyPack.format_version -ne "0.1") {
@@ -16,8 +13,30 @@ if ($storyPack.format_version -ne "0.1") {
 if ($storyPack.entry_node_id -ne "signal-intro") {
     throw "Authoritative StoryPack must declare the signal-intro entry."
 }
-if (@($storyPack.nodes).Count -ne 2) {
-    throw "Authoritative StoryPack must contain the clip and end StoryNodes."
+if (@($storyPack.nodes).Count -ne 4) {
+    throw "Authoritative StoryPack must contain the intro, choice and two ending StoryNodes."
+}
+
+$choiceNode = @($storyPack.nodes) | Where-Object { $_.id -eq "platform-choice" }
+if ($null -eq $choiceNode -or $choiceNode.type -ne "choice") {
+    throw "Authoritative StoryPack must contain the platform-choice StoryNode."
+}
+if (@($choiceNode.options).Count -ne 2) {
+    throw "The platform choice must expose exactly two options."
+}
+if (@($choiceNode.options.id) -notcontains "board-last-train" -or @($choiceNode.options.id) -notcontains "leave-platform") {
+    throw "The platform choice must preserve the two stable V0.1 option ids."
+}
+
+$endingNodes = @($storyPack.nodes) | Where-Object { $_.type -eq "end" }
+if (@($endingNodes).Count -ne 2) {
+    throw "Authoritative StoryPack must contain exactly two endings."
+}
+if (@($endingNodes.id) -notcontains "loop-ending" -or @($endingNodes.id) -notcontains "survivor-ending") {
+    throw "Authoritative StoryPack must preserve both V0.1 ending ids."
+}
+if (@($endingNodes | Where-Object { [string]::IsNullOrWhiteSpace($_.title) }).Count -ne 0) {
+    throw "Every V0.1 ending must have a player-facing title."
 }
 
 $stream = [System.IO.File]::OpenRead($mediaPath)

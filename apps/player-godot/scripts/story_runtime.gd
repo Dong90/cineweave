@@ -20,8 +20,8 @@ func open(story_pack: Dictionary) -> Array[Dictionary]:
 		var node_id := str(node.get("id", ""))
 		if node_id.is_empty():
 			return _invalid_story_pack("StoryNode id is required")
-		if node.get("type") not in ["clip", "end"]:
-			return _invalid_story_pack("StoryNode type must be clip or end")
+		if node.get("type") not in ["clip", "choice", "end"]:
+			return _invalid_story_pack("StoryNode type must be clip, choice, or end")
 		if _nodes_by_id.has(node_id):
 			return _invalid_story_pack("StoryNode ids must be unique")
 		_nodes_by_id[node_id] = node.duplicate(true)
@@ -66,6 +66,30 @@ func open(story_pack: Dictionary) -> Array[Dictionary]:
 						"subtitle cues must be ordered and non-overlapping"
 					)
 				previous_cue_end_ms = float(cue.get("end_ms", -1))
+		var options: Variant = node.get("options")
+		if node.get("type") == "choice" and (
+			not (options is Array) or options.size() != 2
+		):
+			return _invalid_story_pack("choice options must contain exactly two options")
+		if node.get("type") == "choice":
+			var option_ids: Dictionary = {}
+			for option: Variant in options:
+				if not (option is Dictionary):
+					return _invalid_story_pack("every choice option must be an object")
+				var option_id := str(option.get("id", ""))
+				if option_id.is_empty():
+					return _invalid_story_pack("choice option id is required")
+				if option_ids.has(option_id):
+					return _invalid_story_pack(
+						"choice option ids must be unique within the StoryNode"
+					)
+				option_ids[option_id] = true
+				if str(option.get("text", "")).is_empty():
+					return _invalid_story_pack("choice option text is required")
+				if not _nodes_by_id.has(str(option.get("target_node_id", ""))):
+					return _invalid_story_pack(
+						"choice option target_node_id must reference an existing StoryNode"
+					)
 		if node.get("type") == "end" and (
 			str(node.get("title", "")).is_empty() or str(node.get("text", "")).is_empty()
 		):
@@ -78,10 +102,19 @@ func start(entry_node_id: String) -> Array[Dictionary]:
 
 
 func dispatch(player_action: Dictionary) -> Array[Dictionary]:
-	if player_action.get("type") != "ClipFinished":
-		return []
 	var current_node: Dictionary = _nodes_by_id.get(_current_node_id, {})
-	return _enter_node(str(current_node.get("next_node_id", "")))
+	match player_action.get("type"):
+		"ClipFinished":
+			if current_node.get("type") == "clip":
+				return _enter_node(str(current_node.get("next_node_id", "")))
+		"ChoiceSelected":
+			if current_node.get("type") != "choice":
+				return []
+			var option_id := str(player_action.get("option_id", ""))
+			for option: Dictionary in current_node.get("options", []):
+				if str(option.get("id", "")) == option_id:
+					return _enter_node(str(option.get("target_node_id", "")))
+	return []
 
 
 func _invalid_story_pack(detail: String) -> Array[Dictionary]:
@@ -113,6 +146,23 @@ func _enter_node(node_id: String) -> Array[Dictionary]:
 					"type": "ShowSubtitles",
 					"node_id": node_id,
 					"cues": node.get("subtitles", []).duplicate(true),
+				},
+			]
+		"choice":
+			var choices: Array[Dictionary] = []
+			for option: Variant in node.get("options", []):
+				if option is Dictionary:
+					choices.append(
+						{
+							"option_id": str(option.get("id", "")),
+							"text": str(option.get("text", "")),
+						}
+					)
+			return [
+				{
+					"type": "PresentChoices",
+					"node_id": node_id,
+					"choices": choices,
 				},
 			]
 		"end":

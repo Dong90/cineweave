@@ -11,6 +11,8 @@ func open(story_pack: Dictionary) -> Array[Dictionary]:
 		return _invalid_story_pack("format_version must equal 0.1")
 	if str(story_pack.get("story_id", "")).is_empty():
 		return _invalid_story_pack("story_id is required")
+	if str(story_pack.get("title", "")).is_empty():
+		return _invalid_story_pack("title is required")
 	var nodes: Variant = story_pack.get("nodes")
 	if not (nodes is Array) or nodes.is_empty():
 		return _invalid_story_pack("nodes must contain at least one StoryNode")
@@ -33,13 +35,19 @@ func open(story_pack: Dictionary) -> Array[Dictionary]:
 		if node.get("type") == "clip":
 			var media_path := str(node.get("media_path", ""))
 			if not FileAccess.file_exists(media_path):
-				return _invalid_story_pack("clip media_path must reference an existing file")
+				return _invalid_story_pack(
+					"clip media_path must reference an existing file",
+					str(node.get("id", "")),
+					ProjectSettings.globalize_path(media_path)
+				)
 			if (
 				not ResourceLoader.exists(media_path, "VideoStream")
 				or not (ResourceLoader.load(media_path, "VideoStream") is VideoStream)
 			):
 				return _invalid_story_pack(
-					"clip media_path must reference a playable VideoStream"
+					"clip media_path must reference a playable VideoStream",
+					str(node.get("id", "")),
+					ProjectSettings.globalize_path(media_path)
 				)
 		var subtitles: Variant = node.get("subtitles")
 		if node.get("type") == "clip" and (not (subtitles is Array) or subtitles.is_empty()):
@@ -117,16 +125,23 @@ func dispatch(player_action: Dictionary) -> Array[Dictionary]:
 	return []
 
 
-func _invalid_story_pack(detail: String) -> Array[Dictionary]:
+func _invalid_story_pack(
+	detail: String,
+	resource_id: String = "",
+	resolved_path: String = ""
+) -> Array[Dictionary]:
 	_nodes_by_id.clear()
-	return [
-		{
-			"type": "ShowError",
-			"code": "InvalidStoryPack",
-			"message": "StoryPack validation failed.",
-			"details": [detail],
-		},
-	]
+	var effect := {
+		"type": "ShowError",
+		"code": "InvalidStoryPack",
+		"message": "剧情数据无效，无法开始播放。",
+		"details": [detail],
+	}
+	if not resource_id.is_empty():
+		effect["resource_id"] = resource_id
+	if not resolved_path.is_empty():
+		effect["resolved_path"] = resolved_path
+	return [effect]
 
 
 func _enter_node(node_id: String) -> Array[Dictionary]:

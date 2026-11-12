@@ -263,6 +263,15 @@ func run() -> Array[String]:
 		"V0.1 choice requires exactly two player options",
 		failures
 	)
+	var empty_options_pack := choice_story_pack.duplicate(true)
+	empty_options_pack["nodes"][1]["options"] = []
+	_expect_open_error(
+		runtime_script,
+		empty_options_pack,
+		"choice options must contain exactly two options",
+		"empty choice options are rejected before startup",
+		failures
+	)
 	var non_object_option_pack := choice_story_pack.duplicate(true)
 	non_object_option_pack["nodes"][1]["options"][0] = "not-an-option"
 	_expect_open_error(
@@ -327,6 +336,15 @@ func run() -> Array[String]:
 		"StoryPack identity is required before startup",
 		failures
 	)
+	var missing_title_pack := story_pack.duplicate(true)
+	missing_title_pack.erase("title")
+	_expect_open_error(
+		runtime_script,
+		missing_title_pack,
+		"title is required",
+		"StoryPack title is required before startup",
+		failures
+	)
 	var missing_entry_pack := story_pack.duplicate(true)
 	missing_entry_pack["entry_node_id"] = "missing"
 	_expect_open_error(
@@ -363,6 +381,14 @@ func run() -> Array[String]:
 		"clip media references must exist before startup",
 		failures
 	)
+	_expect_media_error_context(
+		runtime_script,
+		missing_media_pack,
+		"intro",
+		"missing-video.ogv",
+		"missing media errors identify the StoryNode and resolved path",
+		failures
+	)
 	var unplayable_media_pack := story_pack.duplicate(true)
 	unplayable_media_pack["nodes"][0]["media_path"] = "res://project.godot"
 	_expect_open_error(
@@ -370,6 +396,14 @@ func run() -> Array[String]:
 		unplayable_media_pack,
 		"clip media_path must reference a playable VideoStream",
 		"clip media references must be playable before startup",
+		failures
+	)
+	_expect_media_error_context(
+		runtime_script,
+		unplayable_media_pack,
+		"intro",
+		"project.godot",
+		"unplayable media errors identify the StoryNode and resolved path",
 		failures
 	)
 	var non_object_node_pack := story_pack.duplicate(true)
@@ -485,4 +519,29 @@ func _expect_open_error(
 	if effect.get("type") != "ShowError" or not effect.get("details", []).has(expected_detail):
 		failures.append(
 			"%s: expected ShowError detail '%s', got %s" % [behavior, expected_detail, effect]
+		)
+
+
+func _expect_media_error_context(
+	runtime_script: Script,
+	story_pack: Dictionary,
+	expected_resource_id: String,
+	expected_path_fragment: String,
+	behavior: String,
+	failures: Array[String]
+) -> void:
+	var runtime: RefCounted = runtime_script.new()
+	var effects: Array = runtime.open(story_pack)
+	if effects.size() != 1:
+		failures.append("%s: expected one ShowError, got %s" % [behavior, effects])
+		return
+	var effect: Dictionary = effects[0]
+	if (
+		effect.get("resource_id") != expected_resource_id
+		or not expected_path_fragment in str(effect.get("resolved_path", ""))
+	):
+		failures.append(
+			"%s: expected resource %s and path containing %s, got %s" % [
+				behavior, expected_resource_id, expected_path_fragment, effect
+			]
 		)

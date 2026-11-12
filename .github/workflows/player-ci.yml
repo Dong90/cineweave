@@ -96,18 +96,44 @@ jobs:
     steps:
       - name: Check out CineWeave
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect engine-impacting changes
+        id: fork-scope
+        shell: pwsh
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          $changedFiles = @(git diff --name-only $env:BASE_SHA HEAD -- .gitmodules engine)
+          if ($LASTEXITCODE -ne 0) {
+              throw "Unable to detect engine-impacting changes."
+          }
+          $required = $changedFiles.Count -gt 0
+          "required=$($required.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          if ($required) {
+              Write-Output "Fork build required by: $($changedFiles -join ', ')"
+          }
+
+      - name: Skip unchanged Fork build
+        if: steps.fork-scope.outputs.required != 'true'
+        shell: pwsh
+        run: Write-Output "No .gitmodules or engine changes; the official-player result is sufficient."
 
       - name: Initialize the pinned Godot source
+        if: steps.fork-scope.outputs.required == 'true'
         shell: pwsh
         run: |
           git config --global url."https://github.com/".insteadOf "git@github.com:"
           git submodule update --init --depth 1 engine/godot
 
       - name: Build the pinned Fork
+        if: steps.fork-scope.outputs.required == 'true'
         shell: pwsh
         run: ./engine/build.ps1 -Bootstrap -Jobs 2 -DevBuild
 
       - name: Locate the Fork console executable
+        if: steps.fork-scope.outputs.required == 'true'
         id: fork-godot
         shell: pwsh
         run: |
@@ -115,10 +141,12 @@ jobs:
           "godot_path=$godotPath" >> $env:GITHUB_OUTPUT
 
       - name: Run the Fork Player smoke check
+        if: steps.fork-scope.outputs.required == 'true'
         shell: pwsh
         run: ./tests/run_headless.ps1 -GodotPath '${{ steps.fork-godot.outputs.godot_path }}'
 
       - name: Start the Fork Player main scene
+        if: steps.fork-scope.outputs.required == 'true'
         shell: pwsh
         run: |
           & '${{ steps.fork-godot.outputs.godot_path }}' --headless --path ./apps/player-godot --quit-after 2
@@ -127,6 +155,7 @@ jobs:
           }
 
       - name: Verify Fork-run repository hygiene
+        if: steps.fork-scope.outputs.required == 'true'
         shell: pwsh
         run: |
           $dirty = git status --porcelain

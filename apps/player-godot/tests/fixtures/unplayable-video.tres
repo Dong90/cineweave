@@ -1,0 +1,6 @@
+[gd_resource type="VideoStream" script_class="UnplayableVideo" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/fixtures/unplayable_video.gd" id="1_unplayable"]
+
+[resource]
+script = ExtResource("1_unplayable")

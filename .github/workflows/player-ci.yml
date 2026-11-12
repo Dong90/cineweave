@@ -118,7 +118,7 @@ jobs:
       - name: Skip unchanged Fork build
         if: steps.fork-scope.outputs.required != 'true'
         shell: pwsh
-        run: Write-Output "No .gitmodules or engine changes; the official-player result is sufficient."
+        run: Write-Output "No .gitmodules or engine changes; source compilation is skipped. Release acceptance still verifies the pinned reusable Fork build."
 
       - name: Initialize the pinned Godot source
         if: steps.fork-scope.outputs.required == 'true'

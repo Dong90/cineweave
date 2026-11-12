@@ -200,9 +200,6 @@ function Invoke-RepositoryScript {
 $engineVersion = Read-JsonFile -Path $engineVersionPath -Label "Engine version manifest"
 $windowsArtifacts = Read-JsonFile -Path $windowsArtifactsPath -Label "Windows Godot artifact lock"
 $releaseConfig = Read-JsonFile -Path $releaseConfigPath -Label "Windows export config"
-if ($windowsArtifacts.engine_source_commit -ne $engineVersion.source_commit) {
-    throw "Windows Godot artifact lock does not match engine/version.json."
-}
 Assert-CineWeaveCleanRepository -RepositoryRoot $repoRoot
 
 $GodotPath = Resolve-CineWeaveGodot -GodotPath $GodotPath -EngineVersion $engineVersion -AllowMissing
@@ -222,7 +219,10 @@ $versionOutput = ((& $GodotPath --version 2>&1) -join "`n").Trim()
 if ($LASTEXITCODE -ne 0 -or $versionOutput -notmatch "^$([regex]::Escape($engineVersion.godot_version))\.stable(?:\.|$)") {
     throw "Expected official-compatible Godot $($engineVersion.godot_version).stable, got '$versionOutput'."
 }
-[void](Assert-FileHash -Path $GodotPath -Algorithm SHA256 -Expected $windowsArtifacts.official_windows_console_sha256)
+$officialGodotPair = Resolve-CineWeaveOfficialGodotPair `
+    -ConsolePath $GodotPath `
+    -EngineVersion $engineVersion `
+    -WindowsArtifacts $windowsArtifacts
 
 $templateVersion = $engineVersion.official_release -replace '-', '.'
 $templatePath = Join-Path $env:APPDATA (
@@ -297,7 +297,8 @@ $evidence = [ordered]@{
     artifact_name = $releaseConfig.artifact_name
     source_commit = $sourceCommit
     godot_version = $versionOutput
-    official_windows_console_sha256 = (Get-FileHash -LiteralPath $GodotPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    official_windows_console_sha256 = $officialGodotPair.ConsoleSha256
+    official_windows_executable_sha256 = $officialGodotPair.ExecutableSha256
     engine_source_commit = $engineVersion.source_commit
     windows_release_template_sha256 = (Get-FileHash -LiteralPath $templatePath -Algorithm SHA256).Hash.ToLowerInvariant()
     export_preset = $releaseConfig.preset

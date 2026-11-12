@@ -71,8 +71,8 @@ if (
     $evidence.product_version -ne $releaseConfig.product_version -or
     $evidence.artifact_name -ne $releaseConfig.artifact_name -or
     $evidence.engine_source_commit -ne $engineVersion.source_commit -or
-    $windowsArtifacts.engine_source_commit -ne $engineVersion.source_commit -or
     $evidence.official_windows_console_sha256 -ne $windowsArtifacts.official_windows_console_sha256 -or
+    $evidence.official_windows_executable_sha256 -ne $windowsArtifacts.official_windows_executable_sha256 -or
     $evidence.windows_release_template_sha256 -ne $windowsArtifacts.windows_release_template_sha256 -or
     $evidence.architecture -ne "x86_64" -or
     $evidence.offline_runtime -ne $true

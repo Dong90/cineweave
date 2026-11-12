@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "console_executable": "godot.windows.editor.dev.x86_64.console.exe",
+  "executable": "godot.windows.editor.dev.x86_64.exe",
+  "console_sha256": "58355f76853b56b4b8acca4487cf3e064c63bb1736cda9ddc9aed1120b21b525",
+  "executable_sha256": "baa5edcdf6904a0a39854c3fdc515d2923e22c680226a13b499bfc25c5077538",
+  "build_target": "editor",
+  "dev_build": true
+}

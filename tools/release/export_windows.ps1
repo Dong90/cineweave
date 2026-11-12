@@ -104,7 +104,7 @@ function Install-OfficialGodot {
     }
 
     if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
-        Write-Output "Downloading verified official Godot $($EngineVersion.godot_version)..."
+        Write-Host "Downloading verified official Godot $($EngineVersion.godot_version)..."
         Invoke-Download -Uri $EngineVersion.official_windows_archive_url -Destination $archivePath
     }
     [void](Assert-FileHash -Path $archivePath -Algorithm SHA256 -Expected $EngineVersion.official_windows_archive_sha256)
@@ -146,7 +146,7 @@ function Install-WindowsExportTemplate {
     $archivePath = Join-Path $cacheRoot $templateAsset
     $archiveUri = "https://github.com/godotengine/godot/releases/download/$($EngineVersion.official_release)/$templateAsset"
     if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
-        Write-Output "Downloading official Godot export templates (about 1.2 GB, cached outside the repository)..."
+        Write-Host "Downloading official Godot export templates (about 1.2 GB, cached outside the repository)..."
         Invoke-Download -Uri $archiveUri -Destination $archivePath
     }
     [void](Assert-FileHash -Path $archivePath -Algorithm SHA512 -Expected $WindowsArtifacts.export_templates_sha512)

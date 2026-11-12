@@ -225,6 +225,164 @@ foreach ($interface in $scriptInterfaces) {
     }
 }
 
+$exportScriptPath = Join-Path $repoRoot "tools\release\export_windows.ps1"
+if (Test-Path -LiteralPath $exportScriptPath -PathType Leaf) {
+    $exportTokens = $null
+    $exportParseErrors = $null
+    $exportAst = [System.Management.Automation.Language.Parser]::ParseFile(
+        $exportScriptPath,
+        [ref]$exportTokens,
+        [ref]$exportParseErrors
+    )
+    $requiredInstallerFunctions = @(
+        "Assert-FileHash",
+        "Install-OfficialGodot",
+        "Install-WindowsExportTemplate"
+    )
+    $installerDefinitions = @{}
+    foreach ($definition in $exportAst.FindAll({
+        param($Node)
+        $Node -is [System.Management.Automation.Language.FunctionDefinitionAst]
+    }, $true)) {
+        $installerDefinitions[$definition.Name] = $definition.Extent.Text
+    }
+    foreach ($functionName in $requiredInstallerFunctions) {
+        if (-not $installerDefinitions.ContainsKey($functionName)) {
+            $failures.Add("Windows export must define $functionName for bootstrap installation.")
+        }
+        else {
+            Invoke-Expression $installerDefinitions[$functionName]
+        }
+    }
+
+    if ($requiredInstallerFunctions | Where-Object { -not $installerDefinitions.ContainsKey($_) }) {
+        # Missing functions were reported above; skip the behavior fixture.
+    }
+    else {
+        $bootstrapFixture = Join-Path ([System.IO.Path]::GetTempPath()) (
+            "cineweave-bootstrap-contract-" + [guid]::NewGuid().ToString("N")
+        )
+        $originalLocalAppData = $env:LOCALAPPDATA
+        $originalAppData = $env:APPDATA
+        New-Item -ItemType Directory -Path $bootstrapFixture | Out-Null
+        try {
+            $env:LOCALAPPDATA = Join-Path $bootstrapFixture "local"
+            $env:APPDATA = Join-Path $bootstrapFixture "roaming"
+            New-Item -ItemType Directory -Path $env:LOCALAPPDATA -Force | Out-Null
+            New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+            $contractId = [guid]::NewGuid().ToString("N")
+            $consoleExecutable = "Godot_contract_console.exe"
+            $godotArchiveSource = Join-Path $bootstrapFixture "godot-source"
+            New-Item -ItemType Directory -Path $godotArchiveSource | Out-Null
+            Set-Content `
+                -LiteralPath (Join-Path $godotArchiveSource $consoleExecutable) `
+                -Value "contract executable" `
+                -Encoding ASCII
+            $godotArchive = Join-Path $bootstrapFixture "official-windows.zip"
+            [System.IO.Compression.ZipFile]::CreateFromDirectory($godotArchiveSource, $godotArchive)
+
+            $engineFixture = [pscustomobject]@{
+                godot_version = "contract-$contractId"
+                official_release = "4.7.2-contract-$contractId"
+                official_windows_console_executable = $consoleExecutable
+                official_windows_archive_url = "https://contract.invalid/official-windows.zip"
+                official_windows_archive_sha256 = (
+                    Get-FileHash -LiteralPath $godotArchive -Algorithm SHA256
+                ).Hash
+            }
+
+            $script:bootstrapDownloadSource = $godotArchive
+            function Invoke-Download {
+                param(
+                    [Parameter(Mandatory)]
+                    [string]$Uri,
+                    [Parameter(Mandatory)]
+                    [string]$Destination
+                )
+
+                $null = $Uri
+                New-Item -ItemType Directory -Path (Split-Path -Parent $Destination) -Force | Out-Null
+                Copy-Item -LiteralPath $script:bootstrapDownloadSource -Destination $Destination
+            }
+
+            $godotOutputs = @(Install-OfficialGodot -EngineVersion $engineFixture)
+            $expectedConsolePath = Join-Path (
+                Join-Path $env:LOCALAPPDATA "CineWeave\tools\godot\$($engineFixture.godot_version)"
+            ) $consoleExecutable
+            if ($godotOutputs.Count -ne 1 -or $godotOutputs[0] -ne $expectedConsolePath) {
+                $failures.Add(
+                    "Bootstrap Godot installation must return only the installed console path on the success stream."
+                )
+            }
+
+            $templateName = "windows_release_x86_64.exe"
+            $templateArchiveSource = Join-Path $bootstrapFixture "template-source"
+            $templateSourceDirectory = Join-Path $templateArchiveSource "templates"
+            New-Item -ItemType Directory -Path $templateSourceDirectory -Force | Out-Null
+            $templateSourcePath = Join-Path $templateSourceDirectory $templateName
+            Set-Content -LiteralPath $templateSourcePath -Value "contract template" -Encoding ASCII
+            Set-Content `
+                -LiteralPath (Join-Path $templateSourceDirectory "version.txt") `
+                -Value $engineFixture.official_release `
+                -Encoding ASCII
+            $templateArchive = Join-Path $bootstrapFixture "templates.tpz"
+            $templateZip = [System.IO.Compression.ZipFile]::Open(
+                $templateArchive,
+                [System.IO.Compression.ZipArchiveMode]::Create
+            )
+            try {
+                [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                    $templateZip,
+                    $templateSourcePath,
+                    "templates/$templateName"
+                )
+                [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                    $templateZip,
+                    (Join-Path $templateSourceDirectory "version.txt"),
+                    "templates/version.txt"
+                )
+            }
+            finally {
+                $templateZip.Dispose()
+            }
+            $windowsArtifactsFixture = [pscustomobject]@{
+                windows_release_template = $templateName
+                windows_release_template_sha256 = (
+                    Get-FileHash -LiteralPath $templateSourcePath -Algorithm SHA256
+                ).Hash
+                export_templates_sha512 = (
+                    Get-FileHash -LiteralPath $templateArchive -Algorithm SHA512
+                ).Hash
+            }
+
+            $script:bootstrapDownloadSource = $templateArchive
+            $templateOutputs = @(
+                Install-WindowsExportTemplate `
+                    -EngineVersion $engineFixture `
+                    -WindowsArtifacts $windowsArtifactsFixture
+            )
+            $templateVersion = $engineFixture.official_release -replace '-', '.'
+            $expectedTemplatePath = Join-Path (
+                Join-Path $env:APPDATA "Godot\export_templates\$templateVersion"
+            ) $templateName
+            if ($templateOutputs.Count -ne 1 -or $templateOutputs[0] -ne $expectedTemplatePath) {
+                $failures.Add(
+                    "Bootstrap template installation must return only the installed template path on the success stream."
+                )
+            }
+        }
+        finally {
+            $env:LOCALAPPDATA = $originalLocalAppData
+            $env:APPDATA = $originalAppData
+            if (Test-Path -LiteralPath $bootstrapFixture) {
+                Remove-Item -LiteralPath $bootstrapFixture -Recurse -Force
+            }
+        }
+    }
+}
+
 $releaseHelpersPath = Join-Path $repoRoot "tools\release\release_helpers.ps1"
 if (Test-Path -LiteralPath $releaseHelpersPath -PathType Leaf) {
     . $releaseHelpersPath

@@ -28,6 +28,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\run_headless.ps1
 
 GitHub Hosted Runner 的三个检查全部通过，才构成 CI 集成证据；本地静态检查不能替代它。
 
+### Fork 按变更范围构建
+
+`fork-player` 检查名始终存在，但只有 PR 改动 `.gitmodules` 或 `engine/**` 时才初始化 Submodule、从源码编译并运行 Fork 门禁。仅修改 Player、UI、PublishedStoryPack、文档或测试时，`fork-player` 会明确记录跳过并快速成功；此时 `official-player` 仍执行完整仓库合同、无窗口测试和主场景启动。这样既保留固定 Fork 的兼容性门禁，也避免在引擎输入未变化时重复约 30 分钟的源码编译。
+
 ## PR 正文
 
 功能和缺陷 PR 进入 `develop`，正文使用 `Refs #<issue>`；GitHub 只对进入默认分支的关闭关键词执行自动关闭，因此 Ticket 在 merge commit 完成并写入证据后由合并步骤关闭。

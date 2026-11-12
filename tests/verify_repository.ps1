@@ -164,12 +164,34 @@ if (Test-Path -LiteralPath $playerCiPath -PathType Leaf) {
         @{ Pattern = 'tests[\\/]verify_pr_contract\.ps1'; Message = "Player CI must validate pull request bodies." },
         @{ Pattern = 'tests[\\/]run_headless\.ps1'; Message = "Player CI must run the Godot smoke check." },
         @{ Pattern = 'engine[\\/]build\.ps1'; Message = "Player CI must build the pinned Fork." },
+        @{ Pattern = '(?m)^\s+- name:\s*Detect engine-impacting changes\s*$'; Message = "Player CI must detect whether the pinned Fork inputs changed." },
+        @{ Pattern = 'BASE_SHA:\s*\$\{\{\s*github\.event\.pull_request\.base\.sha\s*\}\}'; Message = "Fork scope detection must use the pull request base SHA." },
+        @{ Pattern = 'git diff --name-only \$env:BASE_SHA HEAD -- \.gitmodules engine'; Message = "Fork scope detection must compare the pull request base to HEAD and only inspect engine inputs." },
+        @{ Pattern = '(?m)^\s+- name:\s*Skip unchanged Fork build\s*$'; Message = "Player CI must report when an unchanged Fork build is skipped." },
         @{ Pattern = 'git status --porcelain'; Message = "Player CI must verify repository hygiene." }
     )
 
     foreach ($contract in $requiredCiPatterns) {
         if ($playerCi -notmatch $contract.Pattern) {
             $failures.Add($contract.Message)
+        }
+    }
+
+    $guardedForkSteps = @(
+        "Initialize the pinned Godot source",
+        "Build the pinned Fork",
+        "Locate the Fork console executable",
+        "Run the Fork Player smoke check",
+        "Start the Fork Player main scene",
+        "Verify Fork-run repository hygiene"
+    )
+    foreach ($stepName in $guardedForkSteps) {
+        $guardedStepPattern = (
+            "(?m)^\s+- name:\s*{0}\s*\r?\n" +
+            "\s+if:\s+steps\.fork-scope\.outputs\.required\s+==\s+'true'\s*$"
+        ) -f [regex]::Escape($stepName)
+        if ($playerCi -notmatch $guardedStepPattern) {
+            $failures.Add("Fork step '$stepName' must be guarded by engine-change detection.")
         }
     }
 

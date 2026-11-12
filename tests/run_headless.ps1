@@ -49,6 +49,14 @@ if ($GodotPath -notmatch "_console\.exe$" -and (Test-Path -LiteralPath $consoleG
     $GodotPath = $consoleGodot
 }
 
+$importOutput = & $GodotPath --headless --path $projectPath --import 2>&1
+$importExitCode = $LASTEXITCODE
+$importOutput | ForEach-Object { Write-Output $_ }
+if ($importExitCode -ne 0) {
+    Write-Error "Godot failed to import Player assets before the headless test."
+    exit 1
+}
+
 $output = & $GodotPath --headless --path $projectPath --script "res://tests/run_all.gd" 2>&1
 $godotExitCode = $LASTEXITCODE
 $output | ForEach-Object { Write-Output $_ }

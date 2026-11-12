@@ -1,7 +1,7 @@
 extends RefCounted
 
 const RUNTIME_PATH := "res://scripts/story_runtime.gd"
-const VALID_MEDIA_PATH := "res://content/zero-echo/media/zero-echo.ogv"
+const VALID_MEDIA_PATH := "res://content/zero-echo/media/platform-2357.ogv"
 
 
 func run() -> Array[String]:

@@ -12,6 +12,13 @@
 *.ico binary
 *.wav binary
 *.ogg binary
+*.ogv binary
 *.mp3 binary
 *.mp4 binary
 *.webm binary
+*.ttf binary
+*.otf binary
+
+# Preserve the pinned upstream OFL bytes, including its intentional line-end spacing.
+apps/player-godot/assets/fonts/noto-sans-sc/OFL.txt whitespace=-blank-at-eol
+licenses/NotoSansSC-OFL-1.1.txt whitespace=-blank-at-eol

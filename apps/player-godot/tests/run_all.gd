@@ -9,6 +9,7 @@ func _initialize() -> void:
 
 func _run_tests() -> void:
 	_run_story_runtime_spec()
+	await _run_zero_echo_content_spec()
 
 	_expect_equal(
 		ProjectSettings.get_setting("application/config/name"),
@@ -71,6 +72,16 @@ func _run_story_runtime_spec() -> void:
 		return
 	var spec: RefCounted = spec_script.new()
 	_failures.append_array(spec.run())
+
+
+func _run_zero_echo_content_spec() -> void:
+	var spec_script := load("res://tests/zero_echo_content_spec.gd")
+	_expect_true(spec_script != null, "zero-echo content specification can be loaded")
+	if spec_script == null:
+		return
+	var spec: RefCounted = spec_script.new()
+	var content_failures: Array[String] = await spec.run(self)
+	_failures.append_array(content_failures)
 
 
 func _run_player_playback_spec(packed_scene: PackedScene) -> void:

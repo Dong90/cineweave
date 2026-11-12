@@ -1,6 +1,6 @@
 # CineWeave Godot Player
 
-This project is the V0.1 Windows Player. It uses GDScript, the Compatibility renderer, a 1280×720 internal canvas and a responsive window. The approved cold, cinematic title shell opens the bundled 《零点回声》 StoryPack, plays its Ogg Theora clip, renders Simplified Chinese subtitle cues from media time, presents one authored choice and reaches one of two deterministic endings through StoryRuntime.
+This project is the V0.1 Windows Player. It uses GDScript, the Compatibility renderer, a 1280×720 internal canvas and a responsive window. The approved cold, cinematic title shell opens the bundled 《零点回声》 StoryPack, plays five Ogg Theora/Vorbis clips, renders Simplified Chinese subtitle cues from media time, presents one authored choice and reaches one of two deterministic endings through StoryRuntime.
 
 ## Run with official Godot 4.7.2
 
@@ -22,7 +22,7 @@ Initialize and build the engine using [`engine/README.md`](../../engine/README.m
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\run_headless.ps1 -GodotPath <godot-console-executable>
 ```
 
-The runner accepts a GUI executable path when a sibling `_console.exe` exists and switches to the console launcher automatically. Success prints `PASS: CineWeave Godot startup baseline` and returns exit code zero. The test crosses the public StoryRuntime seam, rejects invalid StoryPacks, loads the real media asset, observes a timed subtitle, converts playback completion to a PlayerAction and verifies both mouse and numeric-key choice paths. It also checks loading feedback, pause-time freezing, synchronized resume, session restart, return-to-title cleanup and blocking failure recovery through the real Player scene. Contract failures return a non-zero code.
+The runner accepts a GUI executable path when a sibling `_console.exe` exists and switches to the console launcher automatically. It first performs Godot's headless asset import so a clean checkout can load the pinned Chinese font, then runs the tests. Success prints `PASS: CineWeave Godot startup baseline` and returns exit code zero. The test crosses the public StoryRuntime seam, rejects invalid StoryPacks, loads every real media asset, observes a timed subtitle, and emits the real `VideoStreamPlayer.finished` signal to traverse long-form clips without waiting four minutes in CI. It verifies both mouse and numeric-key choice paths, loading feedback, pause-time freezing, synchronized resume, session restart, return-to-title cleanup and blocking failure recovery through the real Player scene. Contract failures return a non-zero code.
 
 ## Player lifecycle controls
 
@@ -50,7 +50,7 @@ V0.1 now requires a non-empty PublishedStoryPack `title`. Existing pre-V0.1 cont
 
 The authoritative sample lives under `content/samples/zero-echo`. Godot cannot import resources outside its project root, so the checked-in `content/zero-echo` directory inside this Player is a generated copy and must not be edited manually.
 
-Regenerate the original procedural media and synchronize the Player copy:
+Regenerate and validate the five formal 1280×720 procedural clips, then synchronize the Player copy:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\media\generate_zero_echo.ps1
@@ -63,7 +63,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\content\sync_storypa
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\content\sync_storypacks.ps1 -Check
 ```
 
-The media is project-original and procedurally generated; its source and license record is stored beside the authoritative StoryPack in `ASSET_SOURCE.md`.
+Generation normally takes several minutes and requires FFmpeg/FFprobe with Theora and Vorbis encoders. It is independent of the Godot Fork build. The formal media is project-original and procedurally generated; its hashes, source and rights record are stored beside the authoritative StoryPack in `media/media-manifest.json` and `ASSET_SOURCE.md`. The Player bundles pinned Noto Sans SC under the SIL Open Font License 1.1.
 
 ## Visual baseline
 

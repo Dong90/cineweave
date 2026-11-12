@@ -22,7 +22,17 @@ Initialize and build the engine using [`engine/README.md`](../../engine/README.m
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\run_headless.ps1 -GodotPath <godot-console-executable>
 ```
 
-The runner accepts a GUI executable path when a sibling `_console.exe` exists and switches to the console launcher automatically. Success prints `PASS: CineWeave Godot startup baseline` and returns exit code zero. The test crosses the public StoryRuntime seam, rejects invalid StoryPacks, loads the real media asset, observes a timed subtitle, converts playback completion to a PlayerAction and verifies both mouse and numeric-key choice paths. Contract failures return a non-zero code.
+The runner accepts a GUI executable path when a sibling `_console.exe` exists and switches to the console launcher automatically. Success prints `PASS: CineWeave Godot startup baseline` and returns exit code zero. The test crosses the public StoryRuntime seam, rejects invalid StoryPacks, loads the real media asset, observes a timed subtitle, converts playback completion to a PlayerAction and verifies both mouse and numeric-key choice paths. It also checks loading feedback, pause-time freezing, synchronized resume, session restart and return-to-title cleanup through the real Player scene. Contract failures return a non-zero code.
+
+## Player lifecycle controls
+
+- `Escape` opens the pause surface only during media playback or while an authored choice is waiting.
+- Pause freezes media time, subtitle progression and choice input; **继续播放** resumes the same position.
+- **重新开始** discards the current Player and StoryRuntime state and starts from the StoryPack entry.
+- **返回标题** stops media, clears the current session and restores the stable title screen.
+- Pause and ending surfaces provide an explicit **退出游戏** action.
+
+These controls belong to the Player lifecycle. They never become `ClipFinished`, `ChoiceSelected` or StoryGraph transitions.
 
 ## StoryPack content
 
@@ -53,4 +63,4 @@ The title screen defines the first Player Theme Token set:
 - themed buttons, panels and focus state;
 - restrained copy and generous negative space that keep the image area dominant.
 
-The playback stage, subtitle surface, ending and error overlay inherit the same Theme Token. Player UI callbacks only translate device events into PlayerAction and render StoryEffect; StoryNode progression remains inside StoryRuntime. Product screens inherit this theme instead of publishing Godot's default control appearance.
+The loading, playback, subtitle, pause, choice, ending and error surfaces inherit the same Theme Token and use restrained fades without hiding state feedback. Player UI callbacks only translate narrative device events into PlayerAction and render StoryEffect; lifecycle controls remain in the Player, while StoryNode progression remains inside StoryRuntime. Product screens inherit this theme instead of publishing Godot's default control appearance.

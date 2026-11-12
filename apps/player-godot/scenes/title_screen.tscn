@@ -138,6 +138,7 @@ theme_override_font_sizes/font_size = 15
 text = "Godot 4.7.2 · Compatibility · Windows Offline"
 
 [node name="StartAction" type="Button" parent="."]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(230, 56)
 layout_mode = 0
 offset_left = 104.0
@@ -176,6 +177,7 @@ text = "LOCAL MODE  /  NO NETWORK  /  BUILD BASELINE"
 horizontal_alignment = 2
 
 [node name="PlayerStage" type="Control" parent="."]
+unique_name_in_owner = true
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -203,7 +205,46 @@ grow_horizontal = 2
 grow_vertical = 2
 expand = true
 
+[node name="LoadingLayer" type="PanelContainer" parent="PlayerStage"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.36
+anchor_top = 0.38
+anchor_right = 0.64
+anchor_bottom = 0.62
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LoadingContent" type="VBoxContainer" parent="PlayerStage/LoadingLayer"]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="LoadingEyebrow" type="Label" parent="PlayerStage/LoadingLayer/LoadingContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.36, 0.72, 0.75, 1)
+theme_override_font_sizes/font_size = 13
+text = "ZERO ECHO  /  LOCAL STORYPACK"
+horizontal_alignment = 1
+
+[node name="LoadingTitle" type="Label" parent="PlayerStage/LoadingLayer/LoadingContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.98, 0.98, 1)
+theme_override_font_sizes/font_size = 26
+text = "正在准备放映"
+horizontal_alignment = 1
+
+[node name="LoadingHint" type="Label" parent="PlayerStage/LoadingLayer/LoadingContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.47, 0.59, 0.62, 1)
+theme_override_font_sizes/font_size = 13
+text = "离线读取剧情与媒体…"
+horizontal_alignment = 1
+
 [node name="SubtitleLayer" type="PanelContainer" parent="PlayerStage"]
+unique_name_in_owner = true
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -216,6 +257,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="SubtitleText" type="Label" parent="PlayerStage/SubtitleLayer"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.98, 0.98, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.92)
@@ -228,6 +270,7 @@ vertical_alignment = 1
 autowrap_mode = 2
 
 [node name="ChoiceLayer" type="PanelContainer" parent="PlayerStage"]
+unique_name_in_owner = true
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -271,25 +314,122 @@ text = "剧情已暂停  ·  使用鼠标或数字键 1 / 2"
 horizontal_alignment = 1
 
 [node name="ChoiceOne" type="Button" parent="PlayerStage/ChoiceLayer/ChoiceMargin/ChoiceContent"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 text = "选项一"
 
 [node name="ChoiceTwo" type="Button" parent="PlayerStage/ChoiceLayer/ChoiceMargin/ChoiceContent"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 text = "选项二"
 
+[node name="PauseLayer" type="Control" parent="PlayerStage"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PauseDim" type="ColorRect" parent="PlayerStage/PauseLayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.005, 0.008, 0.014, 0.84)
+
+[node name="PausePanel" type="PanelContainer" parent="PlayerStage/PauseLayer"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.31
+anchor_top = 0.11
+anchor_right = 0.69
+anchor_bottom = 0.89
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PauseMargin" type="MarginContainer" parent="PlayerStage/PauseLayer/PausePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 44
+theme_override_constants/margin_top = 34
+theme_override_constants/margin_right = 44
+theme_override_constants/margin_bottom = 34
+
+[node name="PauseContent" type="VBoxContainer" parent="PlayerStage/PauseLayer/PausePanel/PauseMargin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="PauseEyebrow" type="Label" parent="PlayerStage/PauseLayer/PausePanel/PauseMargin/PauseContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.36, 0.72, 0.75, 1)
+theme_override_font_sizes/font_size = 13
+text = "CINEWEAVE  /  PAUSED"
+horizontal_alignment = 1
+
+[node name="PauseTitle" type="Label" parent="PlayerStage/PauseLayer/PausePanel/PauseMargin/PauseContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.98, 0.98, 1)
+theme_override_font_sizes/font_size = 38
+text = "放映暂停"
+horizontal_alignment = 1
+
+[node name="PauseHint" type="Label" parent="PlayerStage/PauseLayer/PausePanel/PauseMargin/PauseContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.47, 0.59, 0.62, 1)
+theme_override_font_sizes/font_size = 13
+text = "媒体、字幕与剧情输入均已冻结"
+horizontal_alignment = 1
+
+[node name="PauseActions" type="VBoxContainer" parent="PlayerStage/PauseLayer/PausePanel/PauseMargin/PauseContent"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PauseResumeAction" type="Button" parent="PlayerStage/PauseLayer/PausePanel/PauseMargin/PauseContent/PauseActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "继续播放"
+
+[node name="PauseRestartAction" type="Button" parent="PlayerStage/PauseLayer/PausePanel/PauseMargin/PauseContent/PauseActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "重新开始"
+
+[node name="PauseReturnTitleAction" type="Button" parent="PlayerStage/PauseLayer/PausePanel/PauseMargin/PauseContent/PauseActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "返回标题"
+
+[node name="PauseExitAction" type="Button" parent="PlayerStage/PauseLayer/PausePanel/PauseMargin/PauseContent/PauseActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "退出游戏"
+
 [node name="EndingLayer" type="PanelContainer" parent="PlayerStage"]
+unique_name_in_owner = true
 visible = false
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.24
-anchor_top = 0.22
+anchor_top = 0.12
 anchor_right = 0.76
-anchor_bottom = 0.78
+anchor_bottom = 0.88
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -306,6 +446,7 @@ text = "ZERO ECHO  /  END"
 horizontal_alignment = 1
 
 [node name="EndingTitle" type="Label" parent="PlayerStage/EndingLayer/EndingContent"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.98, 0.98, 1)
 theme_override_font_sizes/font_size = 48
@@ -320,7 +461,33 @@ text = "故事结束。"
 horizontal_alignment = 1
 autowrap_mode = 2
 
+[node name="EndingActions" type="VBoxContainer" parent="PlayerStage/EndingLayer/EndingContent"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="EndingRestartAction" type="Button" parent="PlayerStage/EndingLayer/EndingContent/EndingActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "重新开始"
+
+[node name="EndingReturnTitleAction" type="Button" parent="PlayerStage/EndingLayer/EndingContent/EndingActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "返回标题"
+
+[node name="EndingExitAction" type="Button" parent="PlayerStage/EndingLayer/EndingContent/EndingActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "退出游戏"
+
 [node name="ErrorLayer" type="PanelContainer" parent="PlayerStage"]
+unique_name_in_owner = true
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -344,6 +511,7 @@ text = "无法播放"
 horizontal_alignment = 1
 
 [node name="ErrorText" type="Label" parent="PlayerStage/ErrorLayer/ErrorContent"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.76, 0.82, 0.83, 1)
 theme_override_font_sizes/font_size = 16

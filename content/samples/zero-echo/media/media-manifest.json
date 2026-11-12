@@ -1,0 +1,80 @@
+﻿{
+    "format_version":  "0.1",
+    "generator":  "tools/media/generate_zero_echo.ps1",
+    "ffmpeg":  "ffmpeg version 9.0-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers",
+    "ffmpeg_sha256":  "05f4251bce9293c2ab492cb17ca7724a0ffd0d06c881ba2ee83b82a89c2fc740",
+    "ffprobe_sha256":  "51e0780cd881f83749b029ed716cbb841c2eac6289f418050f2f2961b158896b",
+    "source":  "CineWeave-original procedural geometry and synthesized ambience",
+    "encoding":  {
+                     "video":  "libtheora q=4, 1280x720, 24/1 fps, yuv420p, keyframe interval 48",
+                     "audio":  "libvorbis q=1, 48000 Hz, mono",
+                     "metadata":  "stripped; fixed serial offsets and noise seeds; bitexact flags enabled"
+                 },
+    "clips":  [
+                  {
+                      "file":  "platform-2357.ogv",
+                      "duration_seconds":  50,
+                      "width":  1280,
+                      "height":  720,
+                      "fps":  "24/1",
+                      "video_codec":  "theora",
+                      "audio_codec":  "vorbis",
+                      "sample_rate":  48000,
+                      "channels":  1,
+                      "bytes":  340100,
+                      "sha256":  "b50de261eebd7153e6e7001ee98eb1902ef31cdaf1bb2e1698c3583979a891b7"
+                  },
+                  {
+                      "file":  "future-warning.ogv",
+                      "duration_seconds":  60,
+                      "width":  1280,
+                      "height":  720,
+                      "fps":  "24/1",
+                      "video_codec":  "theora",
+                      "audio_codec":  "vorbis",
+                      "sample_rate":  48000,
+                      "channels":  1,
+                      "bytes":  479828,
+                      "sha256":  "6b9aa7c86b4b27a90bef43f4888845f7628142821df1f2ad6fbe999cdd2b0fd0"
+                  },
+                  {
+                      "file":  "midnight-train-arrives.ogv",
+                      "duration_seconds":  55,
+                      "width":  1280,
+                      "height":  720,
+                      "fps":  "24/1",
+                      "video_codec":  "theora",
+                      "audio_codec":  "vorbis",
+                      "sample_rate":  48000,
+                      "channels":  1,
+                      "bytes":  386078,
+                      "sha256":  "0e84b91db6fc3146178fe0a3c914e42f03517aa1d1e2f8b9e97e2d2407506972"
+                  },
+                  {
+                      "file":  "board-loop-reveal.ogv",
+                      "duration_seconds":  70,
+                      "width":  1280,
+                      "height":  720,
+                      "fps":  "24/1",
+                      "video_codec":  "theora",
+                      "audio_codec":  "vorbis",
+                      "sample_rate":  48000,
+                      "channels":  1,
+                      "bytes":  509878,
+                      "sha256":  "3a41b8ae8653d651f32bd888b42dbe7a8cc9143c27294d654d812bcddb69b9cf"
+                  },
+                  {
+                      "file":  "leave-to-0001.ogv",
+                      "duration_seconds":  60,
+                      "width":  1280,
+                      "height":  720,
+                      "fps":  "24/1",
+                      "video_codec":  "theora",
+                      "audio_codec":  "vorbis",
+                      "sample_rate":  48000,
+                      "channels":  1,
+                      "bytes":  413823,
+                      "sha256":  "6e90d8f64eeaad0396804e53e5001cf613e0fd772ce36d331bfde0d8d86ed741"
+                  }
+              ]
+}

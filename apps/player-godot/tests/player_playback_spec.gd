@@ -11,6 +11,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	var loading_layer := player.get_node_or_null("%LoadingLayer") as Control
 	var subtitle_layer := player.get_node_or_null("%SubtitleLayer") as Control
 	var subtitle_text := player.get_node_or_null("%SubtitleText") as Label
+	var video_player := player.get_node_or_null("%VideoStage") as VideoStreamPlayer
 	var choice_layer := player.get_node_or_null("%ChoiceLayer") as Control
 	var choice_one := player.get_node_or_null("%ChoiceOne") as Button
 	var choice_two := player.get_node_or_null("%ChoiceTwo") as Button
@@ -25,6 +26,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	_expect_true(loading_layer != null, "Player stage owns a cinematic loading state", failures)
 	_expect_true(subtitle_layer != null, "Player stage owns a subtitle layer", failures)
 	_expect_true(subtitle_text != null, "subtitle layer owns visible text", failures)
+	_expect_true(video_player != null, "Player stage owns a real VideoStreamPlayer seam", failures)
 	_expect_true(choice_layer != null, "Player stage owns a cinematic choice layer", failures)
 	_expect_true(choice_one != null, "choice layer owns the first authored option", failures)
 	_expect_true(choice_two != null, "choice layer owns the second authored option", failures)
@@ -40,6 +42,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 		or loading_layer == null
 		or subtitle_layer == null
 		or subtitle_text == null
+		or video_player == null
 		or choice_layer == null
 		or choice_one == null
 		or choice_two == null
@@ -101,7 +104,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	_expect_true(not pause_layer.visible, "continue closes the pause layer", failures)
 	await scene_tree.create_timer(0.15).timeout
 	_expect_equal(subtitle_text.text, "信号接通。", "continue resumes at the paused cue", failures)
-	await scene_tree.create_timer(0.9).timeout
+	await _wait_for_text(subtitle_text, "零点回声，等待回应。", scene_tree)
 	_expect_equal(
 		subtitle_text.text,
 		"零点回声，等待回应。",
@@ -125,7 +128,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	await scene_tree.create_timer(0.35).timeout
 	_expect_equal(subtitle_text.text, "信号接通。", "restart returns to the entry subtitle", failures)
 
-	await _wait_until_visible(choice_layer, scene_tree)
+	await _finish_common_clips(video_player, scene_tree)
 	_expect_true(choice_layer.visible, "ClipFinished reveals the authored choice", failures)
 	_expect_true(not ending_layer.visible, "choice presentation does not select a default ending", failures)
 	_expect_equal(choice_one.text, "登上末班车", "first option renders authored text", failures)
@@ -151,8 +154,10 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	_expect_true(not choice_two.disabled, "continue unlocks the pending second choice", failures)
 
 	await _click_button(choice_one, scene_tree)
-	_expect_true(choice_one.disabled, "first legal choice immediately locks its button", failures)
-	_expect_true(choice_two.disabled, "first legal choice immediately locks the other button", failures)
+	_expect_true(not choice_layer.visible, "first legal choice closes the choice layer", failures)
+	_expect_true(video_player.is_playing(), "boarding starts its authored branch clip", failures)
+	_expect_true(not ending_layer.visible, "branch media plays before its ending", failures)
+	await _finish_current_clip(video_player, scene_tree)
 	_expect_true(ending_layer.visible, "mouse choice reveals an authored ending", failures)
 	_expect_between(
 		ending_layer.modulate.a,
@@ -185,13 +190,16 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	await _activate_button(ending_restart_action, scene_tree)
 	_expect_true(not ending_layer.visible, "ending restart closes the ending", failures)
 	_expect_true(loading_layer.visible, "ending restart immediately returns to loading", failures)
-	await _wait_until_visible(choice_layer, scene_tree)
+	await _finish_common_clips(video_player, scene_tree)
 	_expect_true(
 		choice_layer.visible and not ending_layer.visible,
 		"ending restart reaches a fresh authored choice",
 		failures
 	)
 	await _click_button(choice_two, scene_tree)
+	_expect_true(video_player.is_playing(), "leaving starts its authored branch clip", failures)
+	_expect_true(not ending_layer.visible, "survivor branch media plays before its ending", failures)
+	await _finish_current_clip(video_player, scene_tree)
 	_expect_true(ending_layer.visible, "restarted StoryRuntime can reach a new ending", failures)
 	_expect_equal(
 		ending_title.text,
@@ -291,14 +299,17 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	var keyboard_choice_layer := keyboard_player.get_node("%ChoiceLayer") as Control
 	var keyboard_ending_layer := keyboard_player.get_node("%EndingLayer") as Control
 	var keyboard_ending_title := keyboard_player.get_node("%EndingTitle") as Label
+	var keyboard_video_player := keyboard_player.get_node("%VideoStage") as VideoStreamPlayer
 	await _activate_button(keyboard_start, scene_tree)
-	await _wait_until_visible(keyboard_choice_layer, scene_tree)
+	await _finish_common_clips(keyboard_video_player, scene_tree)
 	_expect_true(keyboard_choice_layer.visible, "second run waits for keyboard choice", failures)
 	var choose_second := InputEventKey.new()
 	choose_second.keycode = KEY_2
 	choose_second.pressed = true
 	Input.parse_input_event(choose_second)
 	await scene_tree.process_frame
+	_expect_true(not keyboard_ending_layer.visible, "numeric choice plays its branch clip first", failures)
+	await _finish_current_clip(keyboard_video_player, scene_tree)
 	_expect_true(keyboard_ending_layer.visible, "numeric key choice reveals an ending", failures)
 	_expect_equal(keyboard_ending_title.text, "幸存者", "numeric key 2 reaches the survivor ending", failures)
 	var late_first := InputEventKey.new()
@@ -330,6 +341,7 @@ func _click_button(button: Button, scene_tree: SceneTree) -> void:
 	up.button_index = MOUSE_BUTTON_LEFT
 	up.pressed = false
 	scene_tree.root.push_input(up, true)
+	await scene_tree.process_frame
 
 
 func _activate_button(button: Button, scene_tree: SceneTree) -> void:
@@ -345,9 +357,21 @@ func _activate_button(button: Button, scene_tree: SceneTree) -> void:
 	scene_tree.root.push_input(release, true)
 
 
-func _wait_until_visible(control: Control, scene_tree: SceneTree) -> void:
-	var deadline := Time.get_ticks_msec() + 5000
-	while not control.visible and Time.get_ticks_msec() < deadline:
+func _finish_common_clips(video_player: VideoStreamPlayer, scene_tree: SceneTree) -> void:
+	await scene_tree.process_frame
+	for _clip_index in range(3):
+		await _finish_current_clip(video_player, scene_tree)
+
+
+func _finish_current_clip(video_player: VideoStreamPlayer, scene_tree: SceneTree) -> void:
+	video_player.finished.emit()
+	await scene_tree.process_frame
+	await scene_tree.process_frame
+
+
+func _wait_for_text(label: Label, expected: String, scene_tree: SceneTree) -> void:
+	var deadline := Time.get_ticks_msec() + 1500
+	while label.text != expected and Time.get_ticks_msec() < deadline:
 		await scene_tree.process_frame
 
 

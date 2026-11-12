@@ -32,15 +32,81 @@ $requiredFiles = @(
     "tools\media\generate_zero_echo.ps1",
     "content\samples\zero-echo\storypack.json",
     "content\samples\zero-echo\media\zero-echo.ogv",
+    "content\samples\zero-echo\media\media-manifest.json",
+    "content\samples\zero-echo\media\platform-2357.ogv",
+    "content\samples\zero-echo\media\future-warning.ogv",
+    "content\samples\zero-echo\media\midnight-train-arrives.ogv",
+    "content\samples\zero-echo\media\board-loop-reveal.ogv",
+    "content\samples\zero-echo\media\leave-to-0001.ogv",
     "content\samples\zero-echo\ASSET_SOURCE.md",
     "apps\player-godot\content\zero-echo\storypack.json",
     "apps\player-godot\content\zero-echo\media\zero-echo.ogv",
+    "apps\player-godot\content\zero-echo\media\platform-2357.ogv",
+    "apps\player-godot\content\zero-echo\media\platform-2357.ogv.uid",
+    "apps\player-godot\content\zero-echo\media\future-warning.ogv",
+    "apps\player-godot\content\zero-echo\media\future-warning.ogv.uid",
+    "apps\player-godot\content\zero-echo\media\midnight-train-arrives.ogv",
+    "apps\player-godot\content\zero-echo\media\midnight-train-arrives.ogv.uid",
+    "apps\player-godot\content\zero-echo\media\board-loop-reveal.ogv",
+    "apps\player-godot\content\zero-echo\media\board-loop-reveal.ogv.uid",
+    "apps\player-godot\content\zero-echo\media\leave-to-0001.ogv",
+    "apps\player-godot\content\zero-echo\media\leave-to-0001.ogv.uid",
+    "apps\player-godot\assets\fonts\noto-sans-sc\NotoSansSC-Variable.ttf",
+    "apps\player-godot\assets\fonts\noto-sans-sc\NotoSansSC-Variable.ttf.import",
+    "apps\player-godot\assets\fonts\noto-sans-sc\OFL.txt",
+    "apps\player-godot\assets\fonts\noto-sans-sc\SOURCE.md",
+    "licenses\NotoSansSC-OFL-1.1.txt",
     "docs\agents\ci-guardrails.md",
     "docs\adr\0001-pin-godot-fork-and-preserve-official-compatibility.md"
 )
 
 foreach ($relativePath in $requiredFiles) {
     Test-RequiredFile -RelativePath $relativePath
+}
+
+$fontPath = Join-Path $repoRoot "apps\player-godot\assets\fonts\noto-sans-sc\NotoSansSC-Variable.ttf"
+if (Test-Path -LiteralPath $fontPath -PathType Leaf) {
+    $fontHash = (Get-FileHash -LiteralPath $fontPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($fontHash -ne "a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da") {
+        $failures.Add("Bundled Noto Sans SC must match the approved pinned Google Fonts artifact.")
+    }
+}
+
+$fontLicensePath = Join-Path $repoRoot "apps\player-godot\assets\fonts\noto-sans-sc\OFL.txt"
+$releaseFontLicensePath = Join-Path $repoRoot "licenses\NotoSansSC-OFL-1.1.txt"
+if (
+    (Test-Path -LiteralPath $fontLicensePath -PathType Leaf) -and
+    (Test-Path -LiteralPath $releaseFontLicensePath -PathType Leaf) -and
+    (Get-FileHash -LiteralPath $fontLicensePath -Algorithm SHA256).Hash -ne
+        (Get-FileHash -LiteralPath $releaseFontLicensePath -Algorithm SHA256).Hash
+) {
+    $failures.Add("Release font license must match the OFL text bundled beside Noto Sans SC.")
+}
+if (Test-Path -LiteralPath $fontLicensePath -PathType Leaf) {
+    $fontLicenseHash = (Get-FileHash -LiteralPath $fontLicensePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($fontLicenseHash -ne "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9") {
+        $failures.Add("Bundled OFL text must match the pinned Google Fonts distribution bytes.")
+    }
+}
+
+$assetSourcePath = Join-Path $repoRoot "content\samples\zero-echo\ASSET_SOURCE.md"
+if (Test-Path -LiteralPath $assetSourcePath -PathType Leaf) {
+    $assetSource = Get-Content -LiteralPath $assetSourcePath -Encoding UTF8 -Raw
+    foreach ($requiredRightsText in @("All rights reserved", "SIL Open Font License 1.1", "MIT License", "media-manifest.json")) {
+        if (-not $assetSource.Contains($requiredRightsText)) {
+            $failures.Add("Zero-echo rights record must include '$requiredRightsText'.")
+        }
+    }
+}
+
+$thirdPartyNoticesPath = Join-Path $repoRoot "THIRD_PARTY_NOTICES.md"
+if (Test-Path -LiteralPath $thirdPartyNoticesPath -PathType Leaf) {
+    $thirdPartyNotices = Get-Content -LiteralPath $thirdPartyNoticesPath -Encoding UTF8 -Raw
+    foreach ($requiredNoticeText in @("Noto Sans SC", "SIL Open Font License 1.1", "a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da")) {
+        if (-not $thirdPartyNotices.Contains($requiredNoticeText)) {
+            $failures.Add("Third-party notices must include '$requiredNoticeText'.")
+        }
+    }
 }
 
 $engineVersionPath = Join-Path $repoRoot "engine\version.json"
@@ -147,6 +213,21 @@ if (Test-Path -LiteralPath $buildScriptPath) {
     }
 }
 
+foreach ($scriptRelativePath in @("tools\media\generate_zero_echo.ps1", "tools\content\sync_storypacks.ps1", "tests\verify_storypack_copy.ps1")) {
+    $scriptPath = Join-Path $repoRoot $scriptRelativePath
+    if (Test-Path -LiteralPath $scriptPath -PathType Leaf) {
+        $scriptParseErrors = $null
+        [void][System.Management.Automation.Language.Parser]::ParseFile(
+            $scriptPath,
+            [ref]$null,
+            [ref]$scriptParseErrors
+        )
+        if ($scriptParseErrors.Count -gt 0) {
+            $failures.Add("$scriptRelativePath must parse without PowerShell syntax errors.")
+        }
+    }
+}
+
 $playerCiPath = Join-Path $repoRoot ".github\workflows\player-ci.yml"
 if (Test-Path -LiteralPath $playerCiPath -PathType Leaf) {
     $playerCi = Get-Content -LiteralPath $playerCiPath -Encoding UTF8 -Raw
@@ -207,6 +288,14 @@ if (Test-Path -LiteralPath $playerCiPath -PathType Leaf) {
         if ($actionReference.Groups[1].Value -notmatch '^[^@]+@[0-9a-f]{40}$') {
             $failures.Add("GitHub Actions dependencies must be pinned to a full commit SHA.")
         }
+    }
+}
+
+$headlessRunnerPath = Join-Path $repoRoot "tests\run_headless.ps1"
+if (Test-Path -LiteralPath $headlessRunnerPath -PathType Leaf) {
+    $headlessRunner = Get-Content -LiteralPath $headlessRunnerPath -Encoding UTF8 -Raw
+    if ($headlessRunner -notmatch '--headless\s+--path\s+\$projectPath\s+--import') {
+        $failures.Add("Headless Player tests must import project assets before loading the test scene.")
     }
 }
 

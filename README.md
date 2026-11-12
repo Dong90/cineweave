@@ -407,14 +407,14 @@ Main
 
 ## 9. V0.1 的建议制作清单
 
-V0.1 只做能证明玩法闭环的内容，预计素材为 3–5 个短视频或占位片段、1 份字幕、1 个选择点和 2 个结局。推荐按以下顺序落地：
+V0.1 只做能证明玩法闭环的内容。《零点回声》正式样片固定为 5 段 1280×720 Ogg Theora/Vorbis 媒体、逐段简体中文字幕、1 个选择点和 2 个结局；登车路线约 3:55，离开路线约 3:45。媒体、字幕、字体、来源和授权均随仓库记录并自动校验。
 
 1. 创建 `apps/player-godot`，设定入口场景、分辨率和输入映射。
 2. 建立最小 JSON StoryPack 与三种节点：`clip`、`choice`、`end`。
 3. 实现最小 StoryRuntime 和动作/效果边界。
 4. 建立 VideoStage、SubtitleLayer、ChoiceLayer、PauseMenu 和错误遮罩。
-5. 做一个非默认 Theme，并用占位素材跑通两条分支。
-6. 添加无窗口分支测试、启动冒烟测试和 README 中的运行说明。
+5. 使用“影院极简”非默认 Theme 和 Noto Sans SC，跑通两条正式分支。
+6. 添加无窗口分支测试、正式媒体契约、启动冒烟测试和 README 中的运行说明。
 
 V0.1 明确不做：联网 AI、可视化编辑器、复杂存档、实时生成视频、多人互动和商店发行。它们已经有后续承接版本，不需要挤进第一个里程碑。
 
@@ -428,3 +428,9 @@ V0.1 明确不做：联网 AI、可视化编辑器、复杂存档、实时生成
 - 实现工作从 `develop` 创建 `feature/*` 或 `bugfix/*` 分支，通过检查后合并回 `develop`。
 - 正式发行通过 `release/*` 进入 `main` 并创建语义化版本标签；线上紧急修复通过 `hotfix/*` 同时回合 `main` 与 `develop`。
 - `main` 和 `develop` 都不直接开发，完整规则以 [CONTRIBUTING.md](./CONTRIBUTING.md) 为准。
+
+## 12. 许可证与内容权利边界
+
+- CineWeave 程序代码和未另行声明的项目开发文档按根目录 [MIT License](./LICENSE) 提供。
+- Player 捆绑的 Noto Sans SC 是第三方字体，按 SIL Open Font License 1.1 分发，详见 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)。
+- 《零点回声》的正式剧情、字幕、程序化画面和合成环境音为 © 2026 Dong90，保留所有权利，不随根目录 MIT License 授权；完整边界和素材清单见 [ASSET_SOURCE.md](./content/samples/zero-echo/ASSET_SOURCE.md)。

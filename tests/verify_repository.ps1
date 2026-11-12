@@ -30,6 +30,13 @@ $requiredFiles = @(
     "tests\verify_storypack_copy.ps1",
     "tools\content\sync_storypacks.ps1",
     "tools\media\generate_zero_echo.ps1",
+    "tools\release\windows-export.json",
+    "tools\release\export_windows.ps1",
+    "tests\test_windows_export_contract.ps1",
+    "tests\verify_windows_export.ps1",
+    "apps\player-godot\export_presets.cfg",
+    "docs\release\V0.1-WINDOWS.md",
+    "docs\release\V0.1-BUNDLE-README.txt",
     "content\samples\zero-echo\storypack.json",
     "content\samples\zero-echo\media\zero-echo.ogv",
     "content\samples\zero-echo\media\media-manifest.json",
@@ -213,7 +220,14 @@ if (Test-Path -LiteralPath $buildScriptPath) {
     }
 }
 
-foreach ($scriptRelativePath in @("tools\media\generate_zero_echo.ps1", "tools\content\sync_storypacks.ps1", "tests\verify_storypack_copy.ps1")) {
+foreach ($scriptRelativePath in @(
+    "tools\media\generate_zero_echo.ps1",
+    "tools\content\sync_storypacks.ps1",
+    "tools\release\export_windows.ps1",
+    "tests\verify_storypack_copy.ps1",
+    "tests\test_windows_export_contract.ps1",
+    "tests\verify_windows_export.ps1"
+)) {
     $scriptPath = Join-Path $repoRoot $scriptRelativePath
     if (Test-Path -LiteralPath $scriptPath -PathType Leaf) {
         $scriptParseErrors = $null
@@ -353,6 +367,14 @@ if (Test-Path -LiteralPath $storyPackCopyCheck -PathType Leaf) {
     & $storyPackCopyCheck
     if ($LASTEXITCODE -ne 0) {
         $failures.Add("Authoritative StoryPack content and its Godot copy must match.")
+    }
+}
+
+$windowsExportContractCheck = Join-Path $repoRoot "tests\test_windows_export_contract.ps1"
+if (Test-Path -LiteralPath $windowsExportContractCheck -PathType Leaf) {
+    & $windowsExportContractCheck
+    if ($LASTEXITCODE -ne 0) {
+        $failures.Add("Windows export configuration and offline contract must pass.")
     }
 }
 

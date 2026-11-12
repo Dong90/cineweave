@@ -1,0 +1,17 @@
+CineWeave v0.1.0 — 《零点回声》Windows 离线验收包
+
+启动：双击 CineWeave.exe。
+输入：鼠标或数字键 1/2 选择；Escape 暂停。
+网络：V0.1 不需要网络连接，不包含账号、遥测或 AI 调用。
+
+本包包含：
+- CineWeave.exe：官方 Godot 4.7.2 Windows x86_64 运行程序
+- CineWeave.pck：Player、结构化剧情、字体与原创媒体
+- BUILD-EVIDENCE.json 与 SHA256SUMS.txt：构建身份和完整性证据
+- licenses/：代码、引擎、字体和《零点回声》内容权利说明
+
+《零点回声》的正式剧情、字幕、程序化画面与合成环境音
+Copyright © 2026 Dong90. All rights reserved.
+
+V0.1 已知限制：仅支持 Windows x86_64、简体中文、鼠标和键盘；没有存档、
+设置页、联网 AI、自动更新或代码签名。Windows 首次运行可能显示未知发布者提示。

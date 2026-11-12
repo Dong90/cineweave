@@ -52,7 +52,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 		player.free()
 		return failures
 
-	await _click_button(start_action, scene_tree)
+	await _activate_button(start_action, scene_tree)
 	_expect_true(player_stage.visible, "starting immediately reveals the playback stage", failures)
 	_expect_true(loading_layer.visible, "starting immediately reveals loading feedback", failures)
 	_expect_between(
@@ -97,7 +97,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	if resume_action == null:
 		player.free()
 		return failures
-	await _click_button(resume_action, scene_tree)
+	await _activate_button(resume_action, scene_tree)
 	_expect_true(not pause_layer.visible, "continue closes the pause layer", failures)
 	await scene_tree.create_timer(0.15).timeout
 	_expect_equal(subtitle_text.text, "信号接通。", "continue resumes at the paused cue", failures)
@@ -115,7 +115,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	await scene_tree.process_frame
 	_expect_true(pause_layer.visible, "playback can be paused again after continue", failures)
 	var pause_restart_action := player.get_node_or_null("%PauseRestartAction") as Button
-	await _click_button(pause_restart_action, scene_tree)
+	await _activate_button(pause_restart_action, scene_tree)
 	_expect_true(not pause_layer.visible, "restart closes the pause layer", failures)
 	_expect_true(loading_layer.visible, "restart immediately returns to loading", failures)
 	if not loading_layer.visible:
@@ -145,7 +145,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	await scene_tree.process_frame
 	_expect_true(not ending_layer.visible, "pause freezes choice input", failures)
 	_expect_true(choice_layer.visible, "paused choice remains pending", failures)
-	await _click_button(resume_action, scene_tree)
+	await _activate_button(resume_action, scene_tree)
 	_expect_true(not pause_layer.visible, "continue returns to the pending choice", failures)
 	_expect_true(not choice_one.disabled, "continue unlocks the pending first choice", failures)
 	_expect_true(not choice_two.disabled, "continue unlocks the pending second choice", failures)
@@ -182,7 +182,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	if ending_restart_action == null or ending_title_action == null:
 		player.free()
 		return failures
-	await _click_button(ending_restart_action, scene_tree)
+	await _activate_button(ending_restart_action, scene_tree)
 	_expect_true(not ending_layer.visible, "ending restart closes the ending", failures)
 	_expect_true(loading_layer.visible, "ending restart immediately returns to loading", failures)
 	await _wait_until_visible(choice_layer, scene_tree)
@@ -199,7 +199,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 		"restarted StoryRuntime follows the newly selected branch",
 		failures
 	)
-	await _click_button(ending_title_action, scene_tree)
+	await _activate_button(ending_title_action, scene_tree)
 	await scene_tree.process_frame
 	_expect_true(start_action.visible, "ending can return to the title", failures)
 	_expect_between(
@@ -210,7 +210,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 		failures
 	)
 	_expect_true(not player_stage.visible, "ending return hides the playback stage", failures)
-	await _click_button(start_action, scene_tree)
+	await _activate_button(start_action, scene_tree)
 	await scene_tree.process_frame
 	await scene_tree.process_frame
 
@@ -259,7 +259,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	var title_subtitle_layer := title_player.get_node("%SubtitleLayer") as Control
 	var title_subtitle_text := title_player.get_node("%SubtitleText") as Label
 	var return_title_action := title_player.get_node("%PauseReturnTitleAction") as Button
-	await _click_button(title_start, scene_tree)
+	await _activate_button(title_start, scene_tree)
 	await scene_tree.process_frame
 	var title_pause_key := InputEventKey.new()
 	title_pause_key.keycode = KEY_ESCAPE
@@ -267,7 +267,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	Input.parse_input_event(title_pause_key)
 	await scene_tree.process_frame
 	_expect_true(title_pause_layer.visible, "a new session can enter pause", failures)
-	await _click_button(return_title_action, scene_tree)
+	await _activate_button(return_title_action, scene_tree)
 	await scene_tree.process_frame
 	_expect_true(title_start.visible, "return to title restores the primary action", failures)
 	_expect_true(not title_stage.visible, "return to title hides the playback stage", failures)
@@ -277,7 +277,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	Input.parse_input_event(title_escape)
 	await scene_tree.process_frame
 	_expect_true(not title_pause_layer.visible, "Escape cannot open pause from the title", failures)
-	await _click_button(title_start, scene_tree)
+	await _activate_button(title_start, scene_tree)
 	_expect_true(title_stage.visible, "the restored title can start a new session", failures)
 	await scene_tree.process_frame
 	await scene_tree.create_timer(0.35).timeout
@@ -291,7 +291,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	var keyboard_choice_layer := keyboard_player.get_node("%ChoiceLayer") as Control
 	var keyboard_ending_layer := keyboard_player.get_node("%EndingLayer") as Control
 	var keyboard_ending_title := keyboard_player.get_node("%EndingTitle") as Label
-	await _click_button(keyboard_start, scene_tree)
+	await _activate_button(keyboard_start, scene_tree)
 	await _wait_until_visible(keyboard_choice_layer, scene_tree)
 	_expect_true(keyboard_choice_layer.visible, "second run waits for keyboard choice", failures)
 	var choose_second := InputEventKey.new()
@@ -330,6 +330,19 @@ func _click_button(button: Button, scene_tree: SceneTree) -> void:
 	up.button_index = MOUSE_BUTTON_LEFT
 	up.pressed = false
 	scene_tree.root.push_input(up, true)
+
+
+func _activate_button(button: Button, scene_tree: SceneTree) -> void:
+	button.grab_focus()
+	await scene_tree.process_frame
+	var press := InputEventKey.new()
+	press.keycode = KEY_ENTER
+	press.pressed = true
+	scene_tree.root.push_input(press, true)
+	var release := InputEventKey.new()
+	release.keycode = KEY_ENTER
+	release.pressed = false
+	scene_tree.root.push_input(release, true)
 
 
 func _wait_until_visible(control: Control, scene_tree: SceneTree) -> void:

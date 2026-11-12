@@ -18,7 +18,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	var ending_layer := player.get_node_or_null("%EndingLayer") as Control
 	var ending_title := player.get_node_or_null("%EndingTitle") as Label
 	var error_layer := player.get_node_or_null("%ErrorLayer") as Control
-	var error_text := player.get_node_or_null("%ErrorText") as Label
+	var error_diagnostics := player.get_node_or_null("%ErrorDiagnostics") as Label
 
 	_expect_true(start_action != null, "Player exposes the primary start action", failures)
 	_expect_true(player_stage != null, "Player exposes a cinematic playback stage", failures)
@@ -32,7 +32,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	_expect_true(ending_layer != null, "Player stage owns an ending layer", failures)
 	_expect_true(ending_title != null, "ending layer owns a title", failures)
 	_expect_true(error_layer != null, "Player stage owns an error layer", failures)
-	_expect_true(error_text != null, "error layer owns visible details", failures)
+	_expect_true(error_diagnostics != null, "error layer owns developer diagnostics", failures)
 
 	if (
 		start_action == null
@@ -47,7 +47,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 		or ending_layer == null
 		or ending_title == null
 		or error_layer == null
-		or error_text == null
+		or error_diagnostics == null
 	):
 		player.free()
 		return failures
@@ -227,7 +227,7 @@ func run(scene_tree: SceneTree, packed_scene: PackedScene) -> Array[String]:
 	await scene_tree.process_frame
 	_expect_true(error_layer.visible, "ShowError reveals the cinematic error surface", failures)
 	_expect_true(
-		"test detail" in error_text.text,
+		"test detail" in error_diagnostics.text,
 		"ShowError renders diagnostic details for the player",
 		failures
 	)

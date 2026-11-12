@@ -486,35 +486,95 @@ layout_mode = 2
 mouse_default_cursor_shape = 2
 text = "退出游戏"
 
-[node name="ErrorLayer" type="PanelContainer" parent="PlayerStage"]
+[node name="ErrorLayer" type="Control" parent="PlayerStage"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.2
-anchor_top = 0.32
-anchor_right = 0.8
-anchor_bottom = 0.68
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="ErrorContent" type="VBoxContainer" parent="PlayerStage/ErrorLayer"]
+[node name="ErrorDim" type="ColorRect" parent="PlayerStage/ErrorLayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.005, 0.008, 0.014, 0.92)
+
+[node name="ErrorPanel" type="PanelContainer" parent="PlayerStage/ErrorLayer"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.24
+anchor_top = 0.13
+anchor_right = 0.76
+anchor_bottom = 0.87
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ErrorMargin" type="MarginContainer" parent="PlayerStage/ErrorLayer/ErrorPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 44
+theme_override_constants/margin_top = 34
+theme_override_constants/margin_right = 44
+theme_override_constants/margin_bottom = 34
+
+[node name="ErrorContent" type="VBoxContainer" parent="PlayerStage/ErrorLayer/ErrorPanel/ErrorMargin"]
 layout_mode = 2
 theme_override_constants/separation = 18
 alignment = 1
 
-[node name="ErrorTitle" type="Label" parent="PlayerStage/ErrorLayer/ErrorContent"]
+[node name="ErrorEyebrow" type="Label" parent="PlayerStage/ErrorLayer/ErrorPanel/ErrorMargin/ErrorContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.66, 0.28, 1)
+theme_override_font_sizes/font_size = 13
+text = "CINEWEAVE  /  PLAYBACK BLOCKED"
+horizontal_alignment = 1
+
+[node name="ErrorTitle" type="Label" parent="PlayerStage/ErrorLayer/ErrorPanel/ErrorMargin/ErrorContent"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.66, 0.28, 1)
 theme_override_font_sizes/font_size = 30
 text = "无法播放"
 horizontal_alignment = 1
 
-[node name="ErrorText" type="Label" parent="PlayerStage/ErrorLayer/ErrorContent"]
+[node name="ErrorSummary" type="Label" parent="PlayerStage/ErrorLayer/ErrorPanel/ErrorMargin/ErrorContent"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.76, 0.82, 0.83, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 18
 text = "StoryPack 校验失败。"
 horizontal_alignment = 1
 autowrap_mode = 2
+
+[node name="ErrorDiagnostics" type="Label" parent="PlayerStage/ErrorLayer/ErrorPanel/ErrorMargin/ErrorContent"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.64, 0.66, 1)
+theme_override_font_sizes/font_size = 13
+text = "诊断信息"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="ErrorActions" type="VBoxContainer" parent="PlayerStage/ErrorLayer/ErrorPanel/ErrorMargin/ErrorContent"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ErrorReturnTitleAction" type="Button" parent="PlayerStage/ErrorLayer/ErrorPanel/ErrorMargin/ErrorContent/ErrorActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "返回标题"
+
+[node name="ErrorExitAction" type="Button" parent="PlayerStage/ErrorLayer/ErrorPanel/ErrorMargin/ErrorContent/ErrorActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "退出游戏"

@@ -22,7 +22,7 @@ Initialize and build the engine using [`engine/README.md`](../../engine/README.m
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\run_headless.ps1 -GodotPath <godot-console-executable>
 ```
 
-The runner accepts a GUI executable path when a sibling `_console.exe` exists and switches to the console launcher automatically. Success prints `PASS: CineWeave Godot startup baseline` and returns exit code zero. The test crosses the public StoryRuntime seam, rejects invalid StoryPacks, loads the real media asset, observes a timed subtitle, converts playback completion to a PlayerAction and verifies both mouse and numeric-key choice paths. It also checks loading feedback, pause-time freezing, synchronized resume, session restart and return-to-title cleanup through the real Player scene. Contract failures return a non-zero code.
+The runner accepts a GUI executable path when a sibling `_console.exe` exists and switches to the console launcher automatically. Success prints `PASS: CineWeave Godot startup baseline` and returns exit code zero. The test crosses the public StoryRuntime seam, rejects invalid StoryPacks, loads the real media asset, observes a timed subtitle, converts playback completion to a PlayerAction and verifies both mouse and numeric-key choice paths. It also checks loading feedback, pause-time freezing, synchronized resume, session restart, return-to-title cleanup and blocking failure recovery through the real Player scene. Contract failures return a non-zero code.
 
 ## Player lifecycle controls
 
@@ -33,6 +33,18 @@ The runner accepts a GUI executable path when a sibling `_console.exe` exists an
 - Pause and ending surfaces provide an explicit **退出游戏** action.
 
 These controls belong to the Player lifecycle. They never become `ClipFinished`, `ChoiceSelected` or StoryGraph transitions.
+
+## Failure handling
+
+Invalid StoryPacks and missing or unplayable media enter one blocking `ShowError` surface. The Player stops narrative progress, hides loading, subtitles, choices, pause and ending surfaces, then offers **返回标题** and **退出游戏** without using a default Godot dialog.
+
+- Ordinary release builds show only a short player-safe summary and never include a local path.
+- Debug builds show the same summary plus a separate diagnostic block containing the error code, resource identity, resolved path and validation details when available.
+- **返回标题** discards the failed Player and StoryRuntime state, so the bundled StoryPack can be started again cleanly.
+
+The Player scene exposes `published_story_pack_path` as its published-content configuration seam. Production uses the bundled 《零点回声》 path; headless integration checks replace it before `_ready()` to exercise missing and invalid PublishedStoryPack startup without adding a second loader.
+
+V0.1 now requires a non-empty PublishedStoryPack `title`. Existing pre-V0.1 content migrates by adding that field before Player startup; the bundled sample already complies. If compatibility must be rolled back, revert the `title` validation and its contract test. No saved session or persisted schema conversion is involved.
 
 ## StoryPack content
 

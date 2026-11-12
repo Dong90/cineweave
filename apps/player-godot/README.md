@@ -24,6 +24,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\run_headless.ps1 -Go
 
 The runner accepts a GUI executable path when a sibling `_console.exe` exists and switches to the console launcher automatically. It first performs Godot's headless asset import so a clean checkout can load the pinned Chinese font, then runs the tests. Success prints `PASS: CineWeave Godot startup baseline` and returns exit code zero. The test crosses the public StoryRuntime seam, rejects invalid StoryPacks, loads every real media asset, observes a timed subtitle, and emits the real `VideoStreamPlayer.finished` signal to traverse long-form clips without waiting four minutes in CI. It verifies both mouse and numeric-key choice paths, loading feedback, pause-time freezing, synchronized resume, session restart, return-to-title cleanup and blocking failure recovery through the real Player scene. Contract failures return a non-zero code.
 
+## Windows offline export
+
+The checked-in `Windows Desktop` preset exports the official Godot 4.7.2 x86_64 release template without a machine-local template path. From the repository root, the complete entry point prepares verified dependencies when needed, runs the V0.1 gates, exports to ignored `dist/`, attaches rights records and hashes, then starts and observes the packaged executable:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\release\export_windows.ps1 -Bootstrap
+```
+
+See [`docs/release/V0.1-WINDOWS.md`](../../docs/release/V0.1-WINDOWS.md) for clean-environment setup, offline two-route acceptance, failure checks, known limits and the V0.2 handoff. Generated `.exe`, `.pck`, export directories, templates and caches remain outside Git.
+
 ## Player lifecycle controls
 
 - `Escape` opens the pause surface only during media playback or while an authored choice is waiting.

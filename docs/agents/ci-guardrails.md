@@ -30,7 +30,7 @@ GitHub Hosted Runner 的三个检查全部通过，才构成 CI 集成证据；�
 
 ### Fork 按变更范围构建
 
-`fork-player` 检查名始终存在，但只有 PR 改动 `.gitmodules` 或 `engine/**` 时才初始化 Submodule、从源码编译并运行 Fork 门禁。仅修改 Player、UI、PublishedStoryPack、文档或测试时，`fork-player` 会明确记录跳过并快速成功；此时 `official-player` 仍执行完整仓库合同、无窗口测试和主场景启动。这样既保留固定 Fork 的兼容性门禁，也避免在引擎输入未变化时重复约 30 分钟的源码编译。
+`fork-player` 检查名始终存在，但只有 PR 改动 `.gitmodules` 或 `engine/**` 时才初始化 Submodule、从源码编译并运行 Fork 门禁。仅修改 Player、UI、PublishedStoryPack、文档或测试时，`fork-player` 会明确记录跳过源码编译并快速成功；此时 `official-player` 仍执行完整仓库合同、无窗口测试和主场景启动。正式发布验收不能用该快速结果替代 Fork 证据，必须执行 `tests/verify_fork_compatibility.ps1`，复用并校验 `tools/godot/fork-windows-artifacts.json` 固定的 console/GUI 构建后运行同一测试。这样避免在引擎输入未变化时重复约 30 分钟的源码编译，同时不跳过发布兼容验证。
 
 ## PR 正文
 

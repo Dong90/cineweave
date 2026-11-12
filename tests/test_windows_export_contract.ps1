@@ -1,0 +1,692 @@
+$ErrorActionPreference = "Stop"
+
+$repoRoot = Split-Path -Parent $PSScriptRoot
+$failures = [System.Collections.Generic.List[string]]::new()
+
+function Assert-File {
+    param(
+        [Parameter(Mandatory)]
+        [string]$RelativePath
+    )
+
+    $path = Join-Path $repoRoot $RelativePath
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        $failures.Add("Missing Windows export contract file: $RelativePath")
+    }
+}
+
+$requiredFiles = @(
+    "apps\player-godot\export_presets.cfg",
+    "tools\godot\resolve_godot.ps1",
+    "tools\godot\fork-windows-artifacts.json",
+    "tools\godot\windows-artifacts.json",
+    "tools\release\release_helpers.ps1",
+    "tools\release\windows-export.json",
+    "tools\release\export_windows.ps1",
+    "tests\verify_fork_compatibility.ps1",
+    "tests\verify_windows_export.ps1",
+    "docs\release\V0.1-WINDOWS.md"
+)
+
+foreach ($relativePath in $requiredFiles) {
+    Assert-File -RelativePath $relativePath
+}
+
+$forkArtifactsPath = Join-Path $repoRoot "tools\godot\fork-windows-artifacts.json"
+$forkArtifacts = $null
+if (Test-Path -LiteralPath $forkArtifactsPath -PathType Leaf) {
+    try {
+        $forkArtifacts = Get-Content -LiteralPath $forkArtifactsPath -Encoding UTF8 -Raw | ConvertFrom-Json
+    }
+    catch {
+        $failures.Add("tools/godot/fork-windows-artifacts.json must contain valid JSON.")
+    }
+}
+if ($null -ne $forkArtifacts) {
+    if ($null -ne $forkArtifacts.PSObject.Properties["source_commit"]) {
+        $failures.Add("Fork artifact lock must derive the source commit from engine/version.json.")
+    }
+    foreach ($sha256Property in @("console_sha256", "executable_sha256")) {
+        if ($forkArtifacts.$sha256Property -notmatch '^[0-9A-Fa-f]{64}$') {
+            $failures.Add("Fork artifact lock must pin $sha256Property as SHA-256.")
+        }
+    }
+}
+
+$engineVersionPath = Join-Path $repoRoot "engine\version.json"
+$engineVersion = $null
+if (Test-Path -LiteralPath $engineVersionPath -PathType Leaf) {
+    try {
+        $engineVersion = Get-Content -LiteralPath $engineVersionPath -Encoding UTF8 -Raw | ConvertFrom-Json
+    }
+    catch {
+        $failures.Add("engine/version.json must contain valid JSON.")
+    }
+}
+
+$windowsArtifactsPath = Join-Path $repoRoot "tools\godot\windows-artifacts.json"
+$windowsArtifacts = $null
+if (Test-Path -LiteralPath $windowsArtifactsPath -PathType Leaf) {
+    try {
+        $windowsArtifacts = Get-Content -LiteralPath $windowsArtifactsPath -Encoding UTF8 -Raw | ConvertFrom-Json
+    }
+    catch {
+        $failures.Add("tools/godot/windows-artifacts.json must contain valid JSON.")
+    }
+}
+if ($null -ne $windowsArtifacts -and $null -ne $engineVersion) {
+    if ($null -ne $windowsArtifacts.PSObject.Properties["engine_source_commit"]) {
+        $failures.Add("Windows artifact lock must not duplicate engine/version.json source_commit.")
+    }
+    foreach ($sha256Property in @(
+        "official_windows_console_sha256",
+        "official_windows_executable_sha256",
+        "windows_release_template_sha256"
+    )) {
+        if ($windowsArtifacts.$sha256Property -notmatch '^[0-9A-Fa-f]{64}$') {
+            $failures.Add("Windows artifact lock must pin $sha256Property as SHA-256.")
+        }
+    }
+    if ($windowsArtifacts.export_templates_sha512 -notmatch '^[0-9A-Fa-f]{128}$') {
+        $failures.Add("Windows artifact lock must pin export_templates_sha512 as SHA-512.")
+    }
+    if ($windowsArtifacts.windows_release_template -ne "windows_release_x86_64.exe") {
+        $failures.Add("Windows artifact lock must identify the x86_64 Windows release template.")
+    }
+}
+
+$releaseConfigPath = Join-Path $repoRoot "tools\release\windows-export.json"
+if (Test-Path -LiteralPath $releaseConfigPath -PathType Leaf) {
+    try {
+        $releaseConfig = Get-Content -LiteralPath $releaseConfigPath -Encoding UTF8 -Raw | ConvertFrom-Json
+    }
+    catch {
+        $failures.Add("tools/release/windows-export.json must contain valid JSON.")
+        $releaseConfig = $null
+    }
+
+    if ($null -ne $releaseConfig) {
+        if ($releaseConfig.schema_version -ne 1) {
+            $failures.Add("Windows export config must use schema_version 1.")
+        }
+        if ($releaseConfig.product_version -ne "0.1.0") {
+            $failures.Add("Windows export config must identify CineWeave 0.1.0.")
+        }
+        if ($releaseConfig.preset -ne "Windows Desktop") {
+            $failures.Add("Windows export config must select the Windows Desktop preset.")
+        }
+        if ($releaseConfig.artifact_name -ne "CineWeave-v0.1.0-windows-x86_64") {
+            $failures.Add("Windows export config must use the stable V0.1 artifact name.")
+        }
+        foreach ($versionCoupledProperty in @(
+            "official_windows_console_sha256",
+            "official_windows_executable_sha256",
+            "export_templates_asset",
+            "export_templates_sha512",
+            "windows_release_template",
+            "windows_release_template_sha256"
+        )) {
+            if ($null -ne $releaseConfig.PSObject.Properties[$versionCoupledProperty]) {
+                $failures.Add("Windows export config must derive $versionCoupledProperty from engine/version.json.")
+            }
+        }
+    }
+}
+
+$godotResolverPath = Join-Path $repoRoot "tools\godot\resolve_godot.ps1"
+if (Test-Path -LiteralPath $godotResolverPath -PathType Leaf) {
+    . $godotResolverPath
+    if ($null -eq (Get-Command Resolve-CineWeaveOfficialGodotPair -ErrorAction SilentlyContinue)) {
+        $failures.Add("Godot resolution must validate the official console and GUI executable as one pair.")
+    }
+    else {
+        $pairFixture = Join-Path ([System.IO.Path]::GetTempPath()) (
+            "cineweave-godot-pair-contract-" + [guid]::NewGuid().ToString("N")
+        )
+        New-Item -ItemType Directory -Path $pairFixture | Out-Null
+        try {
+            $consoleName = "Godot_contract_console.exe"
+            $executableName = "Godot_contract.exe"
+            $consolePath = Join-Path $pairFixture $consoleName
+            $executablePath = Join-Path $pairFixture $executableName
+            Set-Content -LiteralPath $consolePath -Value "console" -Encoding ASCII
+            Set-Content -LiteralPath $executablePath -Value "engine" -Encoding ASCII
+            $engineFixture = [pscustomobject]@{
+                official_windows_console_executable = $consoleName
+                official_windows_executable = $executableName
+            }
+            $artifactFixture = [pscustomobject]@{
+                official_windows_console_sha256 = (
+                    Get-FileHash -LiteralPath $consolePath -Algorithm SHA256
+                ).Hash
+                official_windows_executable_sha256 = (
+                    Get-FileHash -LiteralPath $executablePath -Algorithm SHA256
+                ).Hash
+            }
+
+            $pair = Resolve-CineWeaveOfficialGodotPair `
+                -ConsolePath $consolePath `
+                -EngineVersion $engineFixture `
+                -WindowsArtifacts $artifactFixture
+            if (
+                $pair.ConsolePath -ne $consolePath -or
+                $pair.ExecutablePath -ne $executablePath
+            ) {
+                $failures.Add("Official Godot pair validation must return the approved console and GUI paths.")
+            }
+
+            Set-Content -LiteralPath $executablePath -Value "tampered engine" -Encoding ASCII
+            $tamperedPairRejected = $false
+            try {
+                Resolve-CineWeaveOfficialGodotPair `
+                    -ConsolePath $consolePath `
+                    -EngineVersion $engineFixture `
+                    -WindowsArtifacts $artifactFixture | Out-Null
+            }
+            catch {
+                $tamperedPairRejected = $true
+            }
+            if (-not $tamperedPairRejected) {
+                $failures.Add("Official Godot pair validation must reject a mismatched GUI executable.")
+            }
+        }
+        finally {
+            if (Test-Path -LiteralPath $pairFixture) {
+                Remove-Item -LiteralPath $pairFixture -Recurse -Force
+            }
+        }
+    }
+
+    if ($null -eq (Get-Command Resolve-CineWeaveForkGodotPair -ErrorAction SilentlyContinue)) {
+        $failures.Add("Godot resolution must validate a reused Fork build against its pinned identity.")
+    }
+    else {
+        $forkPairFixture = Join-Path ([System.IO.Path]::GetTempPath()) (
+            "cineweave-fork-pair-contract-" + [guid]::NewGuid().ToString("N")
+        )
+        New-Item -ItemType Directory -Path $forkPairFixture | Out-Null
+        try {
+            $consoleName = "godot.contract.console.exe"
+            $executableName = "godot.contract.exe"
+            $consolePath = Join-Path $forkPairFixture $consoleName
+            $executablePath = Join-Path $forkPairFixture $executableName
+            Set-Content -LiteralPath $consolePath -Value "fork console" -Encoding ASCII
+            Set-Content -LiteralPath $executablePath -Value "fork engine" -Encoding ASCII
+            $sourceCommit = "0123456789abcdef0123456789abcdef01234567"
+            $engineFixture = [pscustomobject]@{
+                godot_version = "4.7.2"
+                source_commit = $sourceCommit
+            }
+            $forkArtifactFixture = [pscustomobject]@{
+                console_executable = $consoleName
+                executable = $executableName
+                console_sha256 = (Get-FileHash -LiteralPath $consolePath -Algorithm SHA256).Hash
+                executable_sha256 = (Get-FileHash -LiteralPath $executablePath -Algorithm SHA256).Hash
+            }
+            $forkPair = Resolve-CineWeaveForkGodotPair `
+                -ConsolePath $consolePath `
+                -VersionOutput "4.7.2.stable.custom_build.01234567" `
+                -SubmoduleCommit $sourceCommit `
+                -EngineVersion $engineFixture `
+                -ForkArtifacts $forkArtifactFixture
+            if ($forkPair.ConsolePath -ne $consolePath -or $forkPair.ExecutablePath -ne $executablePath) {
+                $failures.Add("Fork pair validation must return the pinned console and GUI paths.")
+            }
+
+            $wrongCommitRejected = $false
+            try {
+                Resolve-CineWeaveForkGodotPair `
+                    -ConsolePath $consolePath `
+                    -VersionOutput "4.7.2.stable.custom_build.89abcdef" `
+                    -SubmoduleCommit "89abcdef0123456789abcdef0123456789abcdef" `
+                    -EngineVersion $engineFixture `
+                    -ForkArtifacts $forkArtifactFixture | Out-Null
+            }
+            catch {
+                $wrongCommitRejected = $true
+            }
+            if (-not $wrongCommitRejected) {
+                $failures.Add("Fork pair validation must reject a build from a different source commit.")
+            }
+
+            Set-Content -LiteralPath $executablePath -Value "tampered fork engine" -Encoding ASCII
+            $tamperedForkRejected = $false
+            try {
+                Resolve-CineWeaveForkGodotPair `
+                    -ConsolePath $consolePath `
+                    -VersionOutput "4.7.2.stable.custom_build.01234567" `
+                    -SubmoduleCommit $sourceCommit `
+                    -EngineVersion $engineFixture `
+                    -ForkArtifacts $forkArtifactFixture | Out-Null
+            }
+            catch {
+                $tamperedForkRejected = $true
+            }
+            if (-not $tamperedForkRejected) {
+                $failures.Add("Fork pair validation must reject a mismatched GUI executable.")
+            }
+        }
+        finally {
+            if (Test-Path -LiteralPath $forkPairFixture) {
+                Remove-Item -LiteralPath $forkPairFixture -Recurse -Force
+            }
+        }
+    }
+}
+
+$presetPath = Join-Path $repoRoot "apps\player-godot\export_presets.cfg"
+if (Test-Path -LiteralPath $presetPath -PathType Leaf) {
+    $preset = Get-Content -LiteralPath $presetPath -Encoding UTF8 -Raw
+    $requiredPresetPatterns = @(
+        '(?m)^name="Windows Desktop"$',
+        '(?m)^platform="Windows Desktop"$',
+        '(?m)^runnable=true$',
+        '(?m)^export_filter="all_resources"$',
+        '(?m)^include_filter="content/\*\*/\*\.json"$',
+        '(?m)^exclude_filter="tests/\*\*,content/zero-echo/media/zero-echo\.ogv"$',
+        '(?m)^export_path="\.\./\.\./dist/CineWeave-v0\.1\.0-windows-x86_64/CineWeave\.exe"$',
+        '(?m)^binary_format/architecture="x86_64"$',
+        '(?m)^binary_format/embed_pck=false$',
+        '(?m)^application/product_version="0\.1\.0\.0"$',
+        '(?m)^application/file_version="0\.1\.0\.0"$'
+    )
+    foreach ($pattern in $requiredPresetPatterns) {
+        if ($preset -notmatch $pattern) {
+            $failures.Add("Windows export preset is missing required contract: $pattern")
+        }
+    }
+    if ($preset -match '(?m)^custom_template/(?:debug|release)="[^\"]+"$') {
+        $failures.Add("Windows export preset must not depend on a machine-local custom template path.")
+    }
+}
+
+$trackedReleaseBinaries = @(
+    git -C $repoRoot ls-files -- '*.exe' '*.pck' '*.tpz' 'dist/**' 'build/**' |
+        Where-Object { $_ -notmatch '^engine/godot/' }
+)
+if ($LASTEXITCODE -ne 0) {
+    $failures.Add("Unable to inspect tracked release binaries.")
+}
+elseif ($trackedReleaseBinaries.Count -gt 0) {
+    $failures.Add("Generated release binaries must remain untracked: $($trackedReleaseBinaries -join ', ')")
+}
+
+foreach ($ignoredPath in @("dist/CineWeave.exe", "build/windows/cache.tmp")) {
+    git -C $repoRoot check-ignore --quiet -- $ignoredPath
+    if ($LASTEXITCODE -ne 0) {
+        $failures.Add("Generated path must be ignored by Git: $ignoredPath")
+    }
+}
+
+$productionFiles = @(
+    Get-ChildItem -LiteralPath (Join-Path $repoRoot "apps\player-godot") -Recurse -File |
+        Where-Object {
+            $_.FullName -notmatch '[\\/]tests[\\/]' -and
+            $_.FullName -notmatch '[\\/]\.godot[\\/]' -and
+            $_.Extension -in @(".gd", ".tscn", ".tres", ".godot", ".json")
+        }
+)
+$forbiddenRuntimePatterns = @(
+    'HTTPRequest',
+    'HTTPClient',
+    'WebSocketPeer',
+    'WebSocketMultiplayerPeer',
+    'StreamPeerTCP',
+    'PacketPeerUDP',
+    'Telemetry',
+    'api[_-]?key',
+    'access[_-]?token',
+    'client[_-]?secret',
+    'OPENAI_API_KEY',
+    'ANTHROPIC_API_KEY',
+    'https?://'
+)
+foreach ($file in $productionFiles) {
+    $source = Get-Content -LiteralPath $file.FullName -Encoding UTF8 -Raw
+    foreach ($pattern in $forbiddenRuntimePatterns) {
+        if ($source -match $pattern) {
+            $relativePath = $file.FullName.Substring($repoRoot.Length).TrimStart('\')
+            $failures.Add("V0.1 production input must remain offline; found '$pattern' in $relativePath.")
+        }
+    }
+}
+
+foreach ($scriptRelativePath in @(
+    "tools\release\export_windows.ps1",
+    "tests\verify_windows_export.ps1",
+    "tests\test_windows_export_contract.ps1"
+)) {
+    $scriptPath = Join-Path $repoRoot $scriptRelativePath
+    if (Test-Path -LiteralPath $scriptPath -PathType Leaf) {
+        $parseErrors = $null
+        [void][System.Management.Automation.Language.Parser]::ParseFile(
+            $scriptPath,
+            [ref]$null,
+            [ref]$parseErrors
+        )
+        if ($parseErrors.Count -gt 0) {
+            $failures.Add("$scriptRelativePath must parse without PowerShell syntax errors.")
+        }
+    }
+}
+
+$scriptInterfaces = @(
+    @{ Path = "tools\release\export_windows.ps1"; Forbidden = @("SkipValidation") },
+    @{ Path = "tests\verify_windows_export.ps1"; Forbidden = @("SkipRuntimeObservation") }
+)
+foreach ($interface in $scriptInterfaces) {
+    $scriptPath = Join-Path $repoRoot $interface.Path
+    if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
+        continue
+    }
+    $tokens = $null
+    $parseErrors = $null
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile(
+        $scriptPath,
+        [ref]$tokens,
+        [ref]$parseErrors
+    )
+    $publicParameters = @($ast.ParamBlock.Parameters | ForEach-Object { $_.Name.VariablePath.UserPath })
+    foreach ($forbiddenParameter in $interface.Forbidden) {
+        if ($publicParameters -contains $forbiddenParameter) {
+            $failures.Add("$($interface.Path) must not expose the $forbiddenParameter bypass.")
+        }
+    }
+}
+
+$exportScriptPath = Join-Path $repoRoot "tools\release\export_windows.ps1"
+if (Test-Path -LiteralPath $exportScriptPath -PathType Leaf) {
+    $exportTokens = $null
+    $exportParseErrors = $null
+    $exportAst = [System.Management.Automation.Language.Parser]::ParseFile(
+        $exportScriptPath,
+        [ref]$exportTokens,
+        [ref]$exportParseErrors
+    )
+    $requiredInstallerFunctions = @(
+        "Assert-FileHash",
+        "Install-OfficialGodot",
+        "Install-WindowsExportTemplate"
+    )
+    $installerDefinitions = @{}
+    foreach ($definition in $exportAst.FindAll({
+        param($Node)
+        $Node -is [System.Management.Automation.Language.FunctionDefinitionAst]
+    }, $true)) {
+        $installerDefinitions[$definition.Name] = $definition.Extent.Text
+    }
+    foreach ($functionName in $requiredInstallerFunctions) {
+        if (-not $installerDefinitions.ContainsKey($functionName)) {
+            $failures.Add("Windows export must define $functionName for bootstrap installation.")
+        }
+        else {
+            Invoke-Expression $installerDefinitions[$functionName]
+        }
+    }
+
+    if ($requiredInstallerFunctions | Where-Object { -not $installerDefinitions.ContainsKey($_) }) {
+        # Missing functions were reported above; skip the behavior fixture.
+    }
+    else {
+        $bootstrapFixture = Join-Path ([System.IO.Path]::GetTempPath()) (
+            "cineweave-bootstrap-contract-" + [guid]::NewGuid().ToString("N")
+        )
+        $originalLocalAppData = $env:LOCALAPPDATA
+        $originalAppData = $env:APPDATA
+        New-Item -ItemType Directory -Path $bootstrapFixture | Out-Null
+        try {
+            $env:LOCALAPPDATA = Join-Path $bootstrapFixture "local"
+            $env:APPDATA = Join-Path $bootstrapFixture "roaming"
+            New-Item -ItemType Directory -Path $env:LOCALAPPDATA -Force | Out-Null
+            New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+            $contractId = [guid]::NewGuid().ToString("N")
+            $consoleExecutable = "Godot_contract_console.exe"
+            $godotArchiveSource = Join-Path $bootstrapFixture "godot-source"
+            New-Item -ItemType Directory -Path $godotArchiveSource | Out-Null
+            Set-Content `
+                -LiteralPath (Join-Path $godotArchiveSource $consoleExecutable) `
+                -Value "contract executable" `
+                -Encoding ASCII
+            $godotArchive = Join-Path $bootstrapFixture "official-windows.zip"
+            [System.IO.Compression.ZipFile]::CreateFromDirectory($godotArchiveSource, $godotArchive)
+
+            $engineFixture = [pscustomobject]@{
+                godot_version = "contract-$contractId"
+                official_release = "4.7.2-contract-$contractId"
+                official_windows_console_executable = $consoleExecutable
+                official_windows_archive_url = "https://contract.invalid/official-windows.zip"
+                official_windows_archive_sha256 = (
+                    Get-FileHash -LiteralPath $godotArchive -Algorithm SHA256
+                ).Hash
+            }
+
+            $script:bootstrapDownloadSource = $godotArchive
+            function Invoke-Download {
+                param(
+                    [Parameter(Mandatory)]
+                    [string]$Uri,
+                    [Parameter(Mandatory)]
+                    [string]$Destination
+                )
+
+                $null = $Uri
+                New-Item -ItemType Directory -Path (Split-Path -Parent $Destination) -Force | Out-Null
+                Copy-Item -LiteralPath $script:bootstrapDownloadSource -Destination $Destination
+            }
+
+            $godotOutputs = @(Install-OfficialGodot -EngineVersion $engineFixture)
+            $expectedConsolePath = Join-Path (
+                Join-Path $env:LOCALAPPDATA "CineWeave\tools\godot\$($engineFixture.godot_version)"
+            ) $consoleExecutable
+            if ($godotOutputs.Count -ne 1 -or $godotOutputs[0] -ne $expectedConsolePath) {
+                $failures.Add(
+                    "Bootstrap Godot installation must return only the installed console path on the success stream."
+                )
+            }
+
+            $templateName = "windows_release_x86_64.exe"
+            $templateArchiveSource = Join-Path $bootstrapFixture "template-source"
+            $templateSourceDirectory = Join-Path $templateArchiveSource "templates"
+            New-Item -ItemType Directory -Path $templateSourceDirectory -Force | Out-Null
+            $templateSourcePath = Join-Path $templateSourceDirectory $templateName
+            Set-Content -LiteralPath $templateSourcePath -Value "contract template" -Encoding ASCII
+            Set-Content `
+                -LiteralPath (Join-Path $templateSourceDirectory "version.txt") `
+                -Value $engineFixture.official_release `
+                -Encoding ASCII
+            $templateArchive = Join-Path $bootstrapFixture "templates.tpz"
+            $templateZip = [System.IO.Compression.ZipFile]::Open(
+                $templateArchive,
+                [System.IO.Compression.ZipArchiveMode]::Create
+            )
+            try {
+                [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                    $templateZip,
+                    $templateSourcePath,
+                    "templates/$templateName"
+                )
+                [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                    $templateZip,
+                    (Join-Path $templateSourceDirectory "version.txt"),
+                    "templates/version.txt"
+                )
+            }
+            finally {
+                $templateZip.Dispose()
+            }
+            $windowsArtifactsFixture = [pscustomobject]@{
+                windows_release_template = $templateName
+                windows_release_template_sha256 = (
+                    Get-FileHash -LiteralPath $templateSourcePath -Algorithm SHA256
+                ).Hash
+                export_templates_sha512 = (
+                    Get-FileHash -LiteralPath $templateArchive -Algorithm SHA512
+                ).Hash
+            }
+
+            $script:bootstrapDownloadSource = $templateArchive
+            $templateOutputs = @(
+                Install-WindowsExportTemplate `
+                    -EngineVersion $engineFixture `
+                    -WindowsArtifacts $windowsArtifactsFixture
+            )
+            $templateVersion = $engineFixture.official_release -replace '-', '.'
+            $expectedTemplatePath = Join-Path (
+                Join-Path $env:APPDATA "Godot\export_templates\$templateVersion"
+            ) $templateName
+            if ($templateOutputs.Count -ne 1 -or $templateOutputs[0] -ne $expectedTemplatePath) {
+                $failures.Add(
+                    "Bootstrap template installation must return only the installed template path on the success stream."
+                )
+            }
+        }
+        finally {
+            $env:LOCALAPPDATA = $originalLocalAppData
+            $env:APPDATA = $originalAppData
+            if (Test-Path -LiteralPath $bootstrapFixture) {
+                Remove-Item -LiteralPath $bootstrapFixture -Recurse -Force
+            }
+        }
+    }
+}
+
+$releaseHelpersPath = Join-Path $repoRoot "tools\release\release_helpers.ps1"
+if (Test-Path -LiteralPath $releaseHelpersPath -PathType Leaf) {
+    . $releaseHelpersPath
+    $fixtureRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("cineweave-release-contract-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $fixtureRoot | Out-Null
+    try {
+        $plainDirectory = Join-Path $fixtureRoot "plain"
+        New-Item -ItemType Directory -Path $plainDirectory | Out-Null
+        Set-Content -LiteralPath (Join-Path $plainDirectory "marker.txt") -Value "safe" -Encoding ASCII
+        Remove-CineWeaveExactDirectory -Path $plainDirectory
+        if (Test-Path -LiteralPath $plainDirectory) {
+            $failures.Add("Release directory removal must remove an ordinary exact directory.")
+        }
+
+        $syntheticRoot = "X:\release-output"
+        $syntheticChild = "$syntheticRoot\ordinary"
+        $syntheticJunction = "$syntheticChild\nested-junction"
+        $syntheticEntries = @{
+            $syntheticRoot = @($syntheticChild)
+            $syntheticChild = @($syntheticJunction)
+        }
+        $syntheticAttributes = @{
+            $syntheticRoot = [System.IO.FileAttributes]::Directory
+            $syntheticChild = [System.IO.FileAttributes]::Directory
+            $syntheticJunction = [System.IO.FileAttributes]::Directory -bor [System.IO.FileAttributes]::ReparsePoint
+        }
+        $syntheticMutation = [pscustomobject]@{ DeleteAttempted = $false }
+        $nestedJunctionRejected = $false
+        try {
+            Remove-CineWeaveExactDirectory `
+                -Path $syntheticRoot `
+                -DirectoryExists { $true } `
+                -GetEntries { param($Path) @($syntheticEntries[$Path]) } `
+                -GetAttributes { param($Path) $syntheticAttributes[$Path] } `
+                -SetFileNormal { $syntheticMutation.DeleteAttempted = $true } `
+                -DeleteFile { $syntheticMutation.DeleteAttempted = $true } `
+                -DeleteDirectory { $syntheticMutation.DeleteAttempted = $true }
+        }
+        catch {
+            $nestedJunctionRejected = $true
+        }
+        if (-not $nestedJunctionRejected -or $syntheticMutation.DeleteAttempted) {
+            $failures.Add("Release deletion must reject a nested reparse point before attempting any mutation.")
+        }
+
+        $utf8Path = Join-Path $fixtureRoot "utf8.json"
+        if ($null -eq (Get-Command ConvertTo-CineWeaveFlatJson -ErrorAction SilentlyContinue)) {
+            $failures.Add("Release helpers must provide deterministic flat JSON serialization.")
+            $jsonFixture = "{`r`n  `"ok`": true`r`n}"
+        }
+        else {
+            $jsonFixture = ConvertTo-CineWeaveFlatJson -Values ([ordered]@{
+                schema_version = 1
+                text = "line 1`nline `"2`""
+                enabled = $true
+            })
+            $expectedJsonFixture = "{`n  `"schema_version`": 1,`n  `"text`": `"line 1\nline \`"2\`"`",`n  `"enabled`": true`n}"
+            if ($jsonFixture -ne $expectedJsonFixture) {
+                $failures.Add("Release JSON serialization must have a fixed cross-PowerShell representation.")
+            }
+        }
+        Write-CineWeaveUtf8NoBom -Path $utf8Path -Content $jsonFixture
+        $utf8Bytes = [System.IO.File]::ReadAllBytes($utf8Path)
+        if ($utf8Bytes.Length -ge 3 -and $utf8Bytes[0] -eq 0xEF -and $utf8Bytes[1] -eq 0xBB -and $utf8Bytes[2] -eq 0xBF) {
+            $failures.Add("Release UTF-8 output must not contain a BOM.")
+        }
+        if ([System.IO.File]::ReadAllText($utf8Path).Contains("`r")) {
+            $failures.Add("Release UTF-8 output must normalize line endings to LF.")
+        }
+
+        $gitFixture = Join-Path $fixtureRoot "git"
+        New-Item -ItemType Directory -Path $gitFixture | Out-Null
+        & git -C $gitFixture init --quiet
+        & git -C $gitFixture config user.email "contract@cineweave.invalid"
+        & git -C $gitFixture config user.name "CineWeave Contract"
+        Set-Content -LiteralPath (Join-Path $gitFixture "tracked.txt") -Value "clean" -Encoding ASCII
+        & git -C $gitFixture add tracked.txt
+        & git -C $gitFixture commit --quiet -m "fixture"
+        Assert-CineWeaveCleanRepository -RepositoryRoot $gitFixture
+        Set-Content -LiteralPath (Join-Path $gitFixture "tracked.txt") -Value "dirty" -Encoding ASCII
+        $dirtyRejected = $false
+        try {
+            Assert-CineWeaveCleanRepository -RepositoryRoot $gitFixture
+        }
+        catch {
+            $dirtyRejected = $true
+        }
+        if (-not $dirtyRejected) {
+            $failures.Add("Release export must reject a dirty source repository.")
+        }
+    }
+    finally {
+        if (Test-Path -LiteralPath $fixtureRoot) {
+            Remove-Item -LiteralPath $fixtureRoot -Recurse -Force
+        }
+    }
+}
+
+$releaseGuidePath = Join-Path $repoRoot "docs\release\V0.1-WINDOWS.md"
+if (Test-Path -LiteralPath $releaseGuidePath -PathType Leaf) {
+    $releaseGuide = Get-Content -LiteralPath $releaseGuidePath -Encoding UTF8 -Raw
+    foreach ($requiredText in @(
+        "submodule update --init --depth 1 engine/godot",
+        "sync_storypacks.ps1 -Check",
+        "run_headless.ps1",
+        "verify_fork_compatibility.ps1",
+        "export_windows.ps1",
+        "verify_windows_export.ps1",
+        "Known limitations",
+        "V0.2"
+    )) {
+        if (-not $releaseGuide.Contains($requiredText)) {
+            $failures.Add("V0.1 Windows release guide must include '$requiredText'.")
+        }
+    }
+}
+
+$acceptanceTemplatePath = Join-Path $repoRoot "docs\release\V0.1-ACCEPTANCE.md"
+if (Test-Path -LiteralPath $acceptanceTemplatePath -PathType Leaf) {
+    $acceptanceTemplate = Get-Content -LiteralPath $acceptanceTemplatePath -Encoding UTF8 -Raw
+    foreach ($requiredText in @(
+        "GitHub Release",
+        "CineWeave-v0.1.0-ACCEPTANCE.md",
+        "source_commit"
+    )) {
+        if (-not $acceptanceTemplate.Contains($requiredText)) {
+            $failures.Add("V0.1 acceptance lifecycle must include '$requiredText'.")
+        }
+    }
+}
+
+if ($failures.Count -gt 0) {
+    $failures | ForEach-Object { Write-Error $_ }
+    exit 1
+}
+
+Write-Output "PASS: Windows export contract regression tests"
+exit 0
